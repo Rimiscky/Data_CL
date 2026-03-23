@@ -1,0 +1,155 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Consommation Électrique (MW) — Temps réel",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT datetime AS time, consommation_brute_electricite_rte AS \"Consommation (MW)\" FROM energy.consumption WHERE $__timeFilter(datetime) ORDER BY datetime",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "MW"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Température vs Consommation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT cw.datetime AS time, cw.consommation_brute_electricite_rte AS \"Consommation (MW)\", cw.temperature_2m AS \"Température (°C)\" FROM energy.consumption_weather cw WHERE $__timeFilter(cw.datetime) ORDER BY cw.datetime",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Température (°C)" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Profil horaire moyen",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT hour AS \"Heure\", ROUND(AVG(consommation_brute_electricite_rte)::numeric, 0) AS \"Consommation moyenne (MW)\" FROM energy.consumption GROUP BY hour ORDER BY hour",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "MW"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Stats clés",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Total enregistrements\", ROUND(AVG(consommation_brute_electricite_rte)::numeric, 0) AS \"Conso. moyenne (MW)\", ROUND(MAX(consommation_brute_electricite_rte)::numeric, 0) AS \"Pic (MW)\", ROUND(MIN(consommation_brute_electricite_rte)::numeric, 0) AS \"Min (MW)\" FROM energy.consumption",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Conditions Météo",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT datetime AS time, temperature_2m AS \"Temp (°C)\", wind_speed_10m AS \"Vent (km/h)\", relative_humidity_2m AS \"Humidité (%)\" FROM energy.weather WHERE $__timeFilter(datetime) ORDER BY datetime",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Score Qualité Données",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT score AS \"Qualité (%)\" FROM energy.quality_reports ORDER BY created_at DESC LIMIT 1",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["energy", "idf", "meteo"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+        "definition": "SELECT DISTINCT region FROM energy.consumption",
+        "name": "region",
+        "query": "SELECT DISTINCT region FROM energy.consumption",
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "Énergie × Météo — Île-de-France",
+  "uid": "energy-idf-overview"
+}

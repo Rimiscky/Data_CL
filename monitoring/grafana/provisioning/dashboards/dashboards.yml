@@ -1,0 +1,15 @@
+# ============================================================
+#  Grafana — Provisioning des dashboards
+# ============================================================
+apiVersion: 1
+
+providers:
+  - name: "Energy Pipeline"
+    orgId: 1
+    folder: "Energy IDF"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

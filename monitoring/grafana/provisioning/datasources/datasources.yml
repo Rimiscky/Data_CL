@@ -1,0 +1,30 @@
+# ============================================================
+#  Grafana — Provisioning des datasources
+# ============================================================
+apiVersion: 1
+
+datasources:
+  # PostgreSQL — Base energy_db
+  - name: PostgreSQL Energy
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: energy_db
+    user: airflow
+    secureJsonData:
+      password: airflow
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      postgresVersion: 1300
+      timescaledb: false
+    isDefault: true
+    editable: true
+
+  # Prometheus — Métriques pipeline
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true
