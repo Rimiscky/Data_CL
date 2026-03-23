@@ -41,25 +41,8 @@ CREATE TABLE energy.weather (
     created_at            TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── Vue croisée énergie × météo ────────────────────────
-CREATE VIEW energy.consumption_weather AS
-SELECT
-    c.datetime,
-    c.date,
-    c.hour,
-    c.day_of_week,
-    c.is_weekend,
-    c.region,
-    c.consommation_brute_electricite_rte,
-    w.temperature_2m,
-    w.apparent_temperature,
-    w.relative_humidity_2m,
-    w.wind_speed_10m,
-    w.precipitation,
-    w.cloud_cover,
-    w.surface_pressure
-FROM energy.consumption c
-LEFT JOIN energy.weather w ON c.datetime = w.datetime;
+-- La vue croisée est créée par scripts/load_to_db.py après chargement des données
+-- (les colonnes dépendent du schéma réel des CSV)
 
 -- ── Table qualité (gouvernance) ─────────────────────────
 CREATE TABLE energy.quality_reports (

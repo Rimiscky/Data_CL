@@ -20,6 +20,33 @@ DB_URL = os.getenv(
     "postgresql://airflow:airflow@postgres:5432/energy_db",
 )
 
+VIEW_SQL = """
+CREATE OR REPLACE VIEW energy.consumption_weather AS
+SELECT
+    c.datetime, c.date, c.hour, c.day_of_week, c.is_weekend,
+    c.consommation_brute_electricite_rte,
+    w.temperature_2m, w.apparent_temperature, w.relative_humidity_2m,
+    w.wind_speed_10m, w.precipitation, w.cloud_cover, w.surface_pressure
+FROM energy.consumption c
+LEFT JOIN energy.weather w ON c.datetime = w.datetime
+"""
+
+
+def _drop_view(engine):
+    """Supprime la vue dépendante avant un REPLACE de table."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("DROP VIEW IF EXISTS energy.consumption_weather CASCADE"))
+        conn.commit()
+
+
+def _recreate_view(engine):
+    """Recrée la vue croisée après rechargement des tables."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text(VIEW_SQL))
+        conn.commit()
+
 
 def load_energy_to_db():
     """Charge les données énergie dans PostgreSQL."""
@@ -134,9 +161,19 @@ def main():
     logger.info("  Chargement données → PostgreSQL (energy_db)")
     logger.info("=" * 50)
 
+    from sqlalchemy import create_engine
+    engine = create_engine(DB_URL)
+
+    # Supprimer la vue avant de remplacer les tables
+    _drop_view(engine)
+
     load_energy_to_db()
     load_weather_to_db()
     load_quality_to_db()
+
+    # Recréer la vue croisée
+    _recreate_view(engine)
+    logger.info("Vue energy.consumption_weather recréée")
 
     logger.info("Chargement terminé")
 
