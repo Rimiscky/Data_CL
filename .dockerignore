@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+*.egg-info
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Données générées (on les monte en volume)
+data/raw/api/*
+data/raw/scraping/*
+data/processed/*
+data/warehouse/*
+logs/*
+
+# Docs
+docs/
+*.md

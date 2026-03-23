@@ -1,0 +1,55 @@
+# ============================================================
+#  .gitignore — Pipeline Data Énergie IDF
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+reports/
+
+# Environnement / Secrets
+.env
+env
+*.env
+.env.*
+
+# Données générées (Data Lake + Warehouse)
+data/raw/api/*
+data/raw/scraping/*
+data/processed/*
+data/warehouse/*
+!data/raw/api/.gitkeep
+!data/raw/scraping/.gitkeep
+!data/processed/.gitkeep
+!data/warehouse/.gitkeep
+
+# Output (dashboards générés)
+output/
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+docker-data/
