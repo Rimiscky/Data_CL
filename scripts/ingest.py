@@ -8,9 +8,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingestion import ODREClient, WebScraper, DataSaver  # noqa: E402
+from datetime import date, timedelta  # noqa: E402
+
+
+from src.ingestion import ODREClient, MeteoClient, WebScraper, DataSaver  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
-from config.settings import RAW_API_DIR, RAW_SCRAPING_DIR, RTE_ECO2MIX_URL  # noqa: E402
+from config.settings import RAW_API_DIR, RAW_SCRAPING_DIR, RAW_METEO_DIR, RTE_ECO2MIX_URL  # noqa: E402
 
 logger = get_logger("ingest")
 
@@ -70,11 +73,38 @@ def ingest_scraping() -> Path:
         return json_path
 
 
+def ingest_meteo(start_date: date = None, end_date: date = None) -> Path:
+    """Ingestion des données météo via Open-Meteo."""
+    logger.info("=== Démarrage ingestion Météo ===")
+    saver = DataSaver(RAW_METEO_DIR)
+
+    if end_date is None:
+        end_date = date.today() - timedelta(days=1)
+    if start_date is None:
+        start_date = end_date - timedelta(days=10)
+
+    with MeteoClient() as client:
+        df = client.fetch_weather_df(start_date, end_date)
+
+        if df.empty:
+            logger.warning("Aucune donnée météo récupérée")
+            return None
+
+        csv_path = saver.save_dataframe(df, prefix="meteo_idf", fmt="csv")
+        saver.save_dataframe(df, prefix="meteo_idf", fmt="json")
+
+        logger.info(
+            "=== Ingestion Météo terminée: %d enregistrements (%s → %s) ===",
+            len(df), start_date, end_date,
+        )
+        return csv_path
+
+
 def main():
     """Point d'entrée principal."""
     logger.info("========================================")
-    logger.info("  Pipeline d'ingestion — Jour 1")
-    logger.info("  Consommation énergétique IDF")
+    logger.info("  Pipeline d'ingestion")
+    logger.info("  Énergie + Météo — Île-de-France")
     logger.info("========================================")
 
     try:
@@ -83,6 +113,13 @@ def main():
             logger.info("Données API sauvegardées: %s", api_path)
     except Exception as e:
         logger.error("Erreur ingestion API: %s", e)
+
+    try:
+        meteo_path = ingest_meteo()
+        if meteo_path:
+            logger.info("Données météo sauvegardées: %s", meteo_path)
+    except Exception as e:
+        logger.error("Erreur ingestion météo: %s", e)
 
     try:
         scraping_path = ingest_scraping()

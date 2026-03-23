@@ -21,6 +21,19 @@ ODRE_ROWS_LIMIT = 100
 # Scraping - RTE éCO2mix données régionales
 RTE_ECO2MIX_URL = "https://www.rte-france.com/eco2mix/les-donnees-regionales"
 
+# API Open-Meteo — Données météo historiques (gratuit, sans clé)
+OPENMETEO_BASE_URL = "https://archive-api.open-meteo.com/v1"
+# Coordonnées centre Île-de-France (Paris)
+IDF_LATITUDE = 48.8566
+IDF_LONGITUDE = 2.3522
+RAW_METEO_DIR = DATA_DIR / "raw" / "meteo"
+
+# Data Governance
+GOVERNANCE_DIR = DATA_DIR / "governance"
+CATALOG_DIR = GOVERNANCE_DIR / "catalog"
+LINEAGE_DIR = GOVERNANCE_DIR / "lineage"
+QUALITY_DIR = GOVERNANCE_DIR / "quality"
+
 # Paramètres généraux
 REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
