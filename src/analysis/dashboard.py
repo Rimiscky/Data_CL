@@ -5,9 +5,7 @@ Utilise Plotly pour les graphiques interactifs et Bokeh pour le dashboard HTML.
 from pathlib import Path
 from typing import Optional
 
-import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 
 from src.analysis.analyzer import DataAnalyzer
@@ -409,7 +407,6 @@ class DashboardBuilder:
 
         for key, fig in self._figures.items():
             chart_id = f"chart_{list(self._figures.keys()).index(key)}"
-            fig_dict = fig.to_plotly_json()
             html_parts.append(
                 f"    Plotly.newPlot('{chart_id}', "
                 f"{fig.to_json()}, "

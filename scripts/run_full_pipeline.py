@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger("full-pipeline")
 

@@ -6,8 +6,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import pandas as pd
-
 from src.etl.extractor import Extractor
 from src.etl.transformer import Transformer
 from src.etl.loader import Loader

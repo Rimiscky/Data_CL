@@ -7,11 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import pandas as pd
+import pandas as pd  # noqa: E402
 
-from src.analysis import DataAnalyzer, DashboardBuilder
-from src.utils.logger import get_logger
-from config.settings import WAREHOUSE_DIR, BASE_DIR
+from src.analysis import DataAnalyzer, DashboardBuilder  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
+from config.settings import WAREHOUSE_DIR, BASE_DIR  # noqa: E402
 
 logger = get_logger("dashboard")
 
@@ -47,8 +47,10 @@ def main():
 
     elec = summary.get("electricity", {})
     if elec:
-        logger.info("Électricité — Moy: %.0f MW | Max: %.0f MW | Min: %.0f MW",
-                     elec.get("mean_mw", 0), elec.get("max_mw", 0), elec.get("min_mw", 0))
+        logger.info(
+            "Électricité — Moy: %.0f MW | Max: %.0f MW | Min: %.0f MW",
+            elec.get("mean_mw", 0), elec.get("max_mw", 0), elec.get("min_mw", 0),
+        )
 
     # Dashboard
     dashboard = DashboardBuilder(analyzer, output_dir=OUTPUT_DIR)

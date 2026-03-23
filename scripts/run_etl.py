@@ -6,9 +6,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.etl.pipeline import ETLPipeline
-from src.utils.logger import get_logger
-from config.settings import RAW_API_DIR, WAREHOUSE_DIR
+from src.etl.pipeline import ETLPipeline  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
+from config.settings import RAW_API_DIR, WAREHOUSE_DIR  # noqa: E402
 
 logger = get_logger("run_etl")
 

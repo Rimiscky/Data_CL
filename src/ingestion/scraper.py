@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from src.utils.logger import get_logger
-from config.settings import REQUEST_TIMEOUT, MAX_RETRIES, RETRY_DELAY
+from config.settings import REQUEST_TIMEOUT, MAX_RETRIES
 
 
 class WebScraper:

@@ -6,12 +6,11 @@ et la sauvegarde dans le Data Lake local.
 import sys
 from pathlib import Path
 
-# Ajouter la racine du projet au PYTHONPATH
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ingestion import ODREClient, WebScraper, DataSaver
-from src.utils.logger import get_logger
-from config.settings import RAW_API_DIR, RAW_SCRAPING_DIR, RTE_ECO2MIX_URL
+from src.ingestion import ODREClient, WebScraper, DataSaver  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
+from config.settings import RAW_API_DIR, RAW_SCRAPING_DIR, RTE_ECO2MIX_URL  # noqa: E402
 
 logger = get_logger("ingest")
 
