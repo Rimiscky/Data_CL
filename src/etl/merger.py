@@ -115,3 +115,63 @@ class DataMerger:
                  if c in result.columns]
         self.logger.info("Catégories météo ajoutées: %s", added)
         return result
+
+    def add_generation_mix(
+        self,
+        df: pd.DataFrame,
+        rte_df: pd.DataFrame,
+        on: str = "datetime",
+        tolerance: str = "1h",
+    ) -> pd.DataFrame:
+        """
+        Ajoute les données de génération RTE (nationale) aux données de consommation (régionales).
+
+        Args:
+            df: DataFrame de consommation (peut avoir colonne 'region').
+            rte_df: DataFrame de génération RTE.
+            on: Colonne de jointure temporelle.
+            tolerance: Tolérance de jointure.
+
+        Returns:
+            DataFrame enrichi avec données de génération RTE.
+        """
+        if df.empty:
+            self.logger.warning("DataFrame consommation vide")
+            return df
+        if rte_df.empty:
+            self.logger.warning("DataFrame RTE vide")
+            return df
+
+        result = df.copy()
+        rte = rte_df.copy()
+
+        # Assurer le type datetime UTC
+        result[on] = pd.to_datetime(result[on], utc=True)
+        rte[on] = pd.to_datetime(rte[on], utc=True)
+
+        # Trier par datetime
+        result = result.sort_values(on).reset_index(drop=True)
+        rte = rte.sort_values(on).reset_index(drop=True)
+
+        cols_before = set(result.columns)
+
+        try:
+            merged = pd.merge_asof(
+                result,
+                rte,
+                on=on,
+                tolerance=pd.Timedelta(tolerance),
+                direction="nearest",
+            )
+        except Exception as e:
+            self.logger.error("Échec ajout génération RTE: %s", e)
+            return result
+
+        cols_added = set(merged.columns) - cols_before
+        self.logger.info(
+            "Génération RTE ajoutée: %d colonnes, %.1f%% de correspondances",
+            len(cols_added),
+            merged[list(cols_added)].notna().any(axis=1).mean() * 100 if cols_added else 0,
+        )
+
+        return merged

@@ -8,22 +8,25 @@
   "panels": [
     {
       "id": 1,
-      "title": "Consommation Électrique (MW) — Temps réel",
+      "title": "Consommation Électrique (MW)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
       "targets": [
         {
-          "rawSql": "SELECT datetime AS time, consommation_brute_electricite_rte AS \"Consommation (MW)\" FROM energy.consumption WHERE $__timeFilter(datetime) ORDER BY datetime",
+          "rawSql": "SELECT datetime AS time, consommation_brute_electricite_rte AS \"Consommation (MW)\" FROM energy.consumption WHERE datetime >= NOW() - INTERVAL '90 days' OR datetime <= NOW() ORDER BY datetime",
           "format": "time_series",
           "refId": "A"
         }
       ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": { "lineWidth": 2, "fillOpacity": 15 },
-          "unit": "MW"
+          "unit": "short"
         }
       }
     },
@@ -35,7 +38,7 @@
       "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
       "targets": [
         {
-          "rawSql": "SELECT cw.datetime AS time, cw.consommation_brute_electricite_rte AS \"Consommation (MW)\", cw.temperature_2m AS \"Température (°C)\" FROM energy.consumption_weather cw WHERE $__timeFilter(cw.datetime) ORDER BY cw.datetime",
+          "rawSql": "SELECT cw.datetime AS time, cw.consommation_brute_electricite_rte AS \"Consommation (MW)\", cw.temperature_2m AS \"Température (°C)\" FROM energy.consumption_weather cw WHERE cw.temperature_2m IS NOT NULL ORDER BY cw.datetime",
           "format": "time_series",
           "refId": "A"
         }
@@ -63,15 +66,22 @@
       "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
       "targets": [
         {
-          "rawSql": "SELECT hour AS \"Heure\", ROUND(AVG(consommation_brute_electricite_rte)::numeric, 0) AS \"Consommation moyenne (MW)\" FROM energy.consumption GROUP BY hour ORDER BY hour",
+          "rawSql": "SELECT LPAD(hour::text, 2, '0') || 'h' AS \"Heure\", ROUND(AVG(consommation_brute_electricite_rte)::numeric, 0) AS \"Moy (MW)\" FROM energy.consumption GROUP BY hour ORDER BY hour",
           "format": "table",
           "refId": "A"
         }
       ],
+      "options": {
+        "xField": "Heure",
+        "orientation": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "tooltip": { "mode": "single" }
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "unit": "MW"
+          "unit": "short"
         }
       }
     },
@@ -100,7 +110,7 @@
       "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
       "targets": [
         {
-          "rawSql": "SELECT datetime AS time, temperature_2m AS \"Temp (°C)\", wind_speed_10m AS \"Vent (km/h)\", relative_humidity_2m AS \"Humidité (%)\" FROM energy.weather WHERE $__timeFilter(datetime) ORDER BY datetime",
+          "rawSql": "SELECT datetime AS time, temperature_2m AS \"Temp (°C)\", wind_speed_10m AS \"Vent (km/h)\", relative_humidity_2m AS \"Humidité (%)\" FROM energy.weather ORDER BY datetime",
           "format": "time_series",
           "refId": "A"
         }
@@ -114,7 +124,7 @@
       "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
       "targets": [
         {
-          "rawSql": "SELECT score AS \"Qualité (%)\" FROM energy.quality_reports ORDER BY created_at DESC LIMIT 1",
+          "rawSql": "SELECT COALESCE((SELECT score FROM energy.quality_reports ORDER BY created_at DESC LIMIT 1), 0) AS \"Qualité (%)\"",
           "format": "table",
           "refId": "A"
         }
@@ -137,19 +147,8 @@
   ],
   "schemaVersion": 38,
   "tags": ["energy", "idf", "meteo"],
-  "templating": {
-    "list": [
-      {
-        "current": {},
-        "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
-        "definition": "SELECT DISTINCT region FROM energy.consumption",
-        "name": "region",
-        "query": "SELECT DISTINCT region FROM energy.consumption",
-        "type": "query"
-      }
-    ]
-  },
-  "time": { "from": "now-7d", "to": "now" },
+  "templating": { "list": [] },
+  "time": { "from": "now-90d", "to": "now" },
   "title": "Énergie × Météo — Île-de-France",
   "uid": "energy-idf-overview"
 }

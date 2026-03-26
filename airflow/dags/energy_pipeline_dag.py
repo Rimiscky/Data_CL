@@ -1,15 +1,26 @@
 """
-DAG Airflow — Pipeline complet Énergie × Météo IDF.
+DAG Airflow — Pipeline orchestré multi-sources et multi-régions.
 
-Orchestration : Ingestion → ETL → Chargement DB → Dashboard → Gouvernance
+Orchestration : Ingestion multi-sources → ETL → Chargement DB → Dashboard → Gouvernance
+Sources : ODRE (énergie), RTE (génération), Open-Meteo, Météo-Concept
 Planification : tous les jours à 6h UTC
 """
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
+from airflow.utils.task_group import TaskGroup
 from airflow.utils.dates import days_ago
+
+# Régions configurées (miroir de config/settings.py REGIONS)
+REGIONS = ["idf", "provence", "bretagne", "nouvelle-aquitaine"]
+
+
+def on_failure_callback(context):
+    """Callback appelé en cas d'erreur."""
+    task = context["task"]
+    execution_date = context["execution_date"]
+    print(f"Task '{task.task_id}' échouée à {execution_date}")
 
 
 default_args = {
@@ -20,99 +31,111 @@ default_args = {
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
     "start_date": days_ago(1),
+    "on_failure_callback": on_failure_callback,
 }
 
-dag = DAG(
-    dag_id="energy_meteo_pipeline",
+
+with DAG(
+    dag_id="energy_pipeline_multi_sources",
     default_args=default_args,
-    description="Pipeline consommation énergétique × météo Île-de-France",
-    schedule_interval="0 6 * * *",  # Tous les jours à 6h UTC
+    description="Pipeline énergie × météo multi-régions (ODRE, RTE, Météo)",
+    schedule_interval="0 6 * * *",
     catchup=False,
-    tags=["energy", "meteo", "idf", "etl"],
-)
+    tags=["energy", "meteo", "rte", "multi-region", "etl"],
+    params={"regions": REGIONS},
+) as dag:
 
+    # ──────────────────────────────────────────────────────
+    # Ingestion : Énergie (API ODRE) - Multi-régions
+    # ──────────────────────────────────────────────────────
+    with TaskGroup("ingest_energy_group") as ingest_energy_group:
+        for region in REGIONS:
+            BashOperator(
+                task_id=f"ingest_odre_{region}",
+                bash_command=(
+                    "cd /opt/airflow && python -c \""
+                    "import sys; sys.path.insert(0, '.'); "
+                    "from src.ingestion.odre_client import ODREClient; "
+                    "from src.ingestion.data_saver import DataSaver; "
+                    "from config.settings import RAW_API_DIR; "
+                    "saver = DataSaver(RAW_API_DIR); "
+                    f"client = ODREClient.for_region('{region}'); "
+                    "data = client.fetch_all_consumption(max_records=500); "
+                    f"saver.save_json(data, prefix='odre_consommation_{region}'); "
+                    f"saver.save_csv(data, prefix='odre_consommation_{region}'); "
+                    "client.close(); "
+                    f"print(f'Ingestion {region.upper()}: {{len(data)}} enregistrements')"
+                    "\""
+                ),
+            )
 
-# ── Task 1 : Ingestion données énergie (API ODRE) ───────
-ingest_energy = BashOperator(
-    task_id="ingest_energy",
-    bash_command="cd /opt/airflow && python -c \"\n"
-    "import sys; sys.path.insert(0, '.')\n"
-    "from src.ingestion import ODREClient, DataSaver\n"
-    "from config.settings import RAW_API_DIR, ODRE_DATASET, ODRE_REGION\n"
-    "saver = DataSaver(RAW_API_DIR)\n"
-    "with ODREClient() as client:\n"
-    "    data = client.fetch_all_consumption(dataset=ODRE_DATASET, region=ODRE_REGION, max_records=500)\n"
-    "    saver.save_json(data, prefix='odre_consommation_idf')\n"
-    "    saver.save_csv(data, prefix='odre_consommation_idf')\n"
-    "print(f'Ingestion énergie: {len(data)} enregistrements')\n"
-    "\"",
-    dag=dag,
-)
+    # ──────────────────────────────────────────────────────
+    # Ingestion : Météo Open-Meteo - Multi-régions
+    # ──────────────────────────────────────────────────────
+    ingest_meteo = BashOperator(
+        task_id="ingest_meteo_open_meteo",
+        bash_command=(
+            "cd /opt/airflow && python -c \""
+            "import sys; sys.path.insert(0, '.'); "
+            "from scripts.ingest import ingest_meteo; "
+            "ingest_meteo()"
+            "\""
+        ),
+    )
 
+    # ──────────────────────────────────────────────────────
+    # Ingestion : RTE - Génération d'électricité
+    # ──────────────────────────────────────────────────────
+    ingest_rte = BashOperator(
+        task_id="ingest_rte_generation",
+        bash_command=(
+            "cd /opt/airflow && python -c \""
+            "import sys; sys.path.insert(0, '.'); "
+            "from scripts.ingest import ingest_rte_realtime; "
+            "ingest_rte_realtime(max_records=500)"
+            "\""
+        ),
+    )
 
-# ── Task 2 : Ingestion données météo (Open-Meteo) ───────
-ingest_meteo = BashOperator(
-    task_id="ingest_meteo",
-    bash_command="cd /opt/airflow && python -c \"\n"
-    "import sys; sys.path.insert(0, '.')\n"
-    "from datetime import date, timedelta\n"
-    "from src.ingestion import MeteoClient, DataSaver\n"
-    "from config.settings import RAW_METEO_DIR\n"
-    "saver = DataSaver(RAW_METEO_DIR)\n"
-    "end = date.today() - timedelta(days=1)\n"
-    "start = end - timedelta(days=30)\n"
-    "with MeteoClient() as client:\n"
-    "    df = client.fetch_weather_df(start, end)\n"
-    "    saver.save_dataframe(df, prefix='meteo_idf', fmt='csv')\n"
-    "print(f'Ingestion météo: {len(df)} enregistrements')\n"
-    "\"",
-    dag=dag,
-)
+    # ──────────────────────────────────────────────────────
+    # ETL (Extract → Transform → Load)
+    # ──────────────────────────────────────────────────────
+    run_etl = BashOperator(
+        task_id="run_etl",
+        bash_command="cd /opt/airflow && python scripts/run_etl.py",
+    )
 
+    # ──────────────────────────────────────────────────────
+    # Chargement en base PostgreSQL
+    # ──────────────────────────────────────────────────────
+    load_to_postgres = BashOperator(
+        task_id="load_to_postgres",
+        bash_command="cd /opt/airflow && python scripts/load_to_db.py",
+    )
 
-# ── Task 3 : ETL (Extract → Transform → Load) ──────────
-run_etl = BashOperator(
-    task_id="run_etl",
-    bash_command="cd /opt/airflow && python scripts/run_etl.py",
-    dag=dag,
-)
+    # ──────────────────────────────────────────────────────
+    # Dashboard (énergie + croisé)
+    # ──────────────────────────────────────────────────────
+    generate_dashboard = BashOperator(
+        task_id="generate_dashboard",
+        bash_command="cd /opt/airflow && python scripts/run_dashboard.py",
+    )
 
+    # ──────────────────────────────────────────────────────
+    # Gouvernance (qualité)
+    # ──────────────────────────────────────────────────────
+    run_governance = BashOperator(
+        task_id="run_governance",
+        bash_command="cd /opt/airflow && python scripts/run_governance.py",
+    )
 
-# ── Task 4 : Chargement en base PostgreSQL ──────────────
-load_to_postgres = BashOperator(
-    task_id="load_to_postgres",
-    bash_command="cd /opt/airflow && python scripts/load_to_db.py",
-    dag=dag,
-)
-
-
-# ── Task 5 : Dashboard (énergie + croisé) ───────────────
-generate_dashboard = BashOperator(
-    task_id="generate_dashboard",
-    bash_command="cd /opt/airflow && python scripts/run_dashboard.py",
-    dag=dag,
-)
-
-
-# ── Task 6 : Gouvernance (qualité + lignage) ────────────
-run_governance = BashOperator(
-    task_id="run_governance",
-    bash_command="cd /opt/airflow && python -c \"\n"
-    "import sys; sys.path.insert(0, '.')\n"
-    "import pandas as pd\n"
-    "from src.governance import DataQualityChecker\n"
-    "from config.settings import WAREHOUSE_DIR, QUALITY_DIR\n"
-    "df = pd.read_csv(WAREHOUSE_DIR / 'energy_consumption_idf' / 'latest.csv')\n"
-    "checker = DataQualityChecker('energy_consumption_idf')\n"
-    "report = checker.run_all_checks(df)\n"
-    "checker.save_report(report, QUALITY_DIR)\n"
-    "print(f'Qualite: {report.score:.0f}%')\n"
-    "\"",
-    dag=dag,
-)
-
-
-# ── Dépendances ─────────────────────────────────────────
-# Ingestion en parallèle, puis ETL, puis DB + Dashboard + Governance
-[ingest_energy, ingest_meteo] >> run_etl >> load_to_postgres
-load_to_postgres >> [generate_dashboard, run_governance]
+    # ──────────────────────────────────────────────────────
+    # Dépendances : Orchestration du pipeline
+    # ──────────────────────────────────────────────────────
+    # 1. Ingestions en parallèle (ODRE multi-région, Météo, RTE)
+    # 2. ETL (attend tous les ingests)
+    # 3. Chargement DB
+    # 4. Dashboard + Gouvernance (en parallèle)
+    [ingest_energy_group, ingest_meteo, ingest_rte] >> run_etl
+    run_etl >> load_to_postgres
+    load_to_postgres >> [generate_dashboard, run_governance]

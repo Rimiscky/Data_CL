@@ -1,0 +1,237 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Pipeline Execution Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "rate(pipeline_duration_seconds_sum[1h]) / rate(pipeline_duration_seconds_count[1h])",
+          "legendFormat": "Avg Duration (s)",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Rows Ingested (Last 7 Days)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "rate(ingested_rows_total[1d])",
+          "legendFormat": "{{ source }} - {{ region }}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 1, "fillOpacity": 20 },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Data Quality Score (Latest)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "data_quality_score",
+          "legendFormat": "{{ dataset }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Task Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "rate(task_failures_total[1h])",
+          "legendFormat": "{{ task_id }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "lineWidth": 2 },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Data Freshness (Hours)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "(time() - max(data_freshness_seconds)) / 3600",
+          "legendFormat": "{{ source }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 24 }
+            ]
+          },
+          "unit": "h"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Pipeline Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "rate(pipeline_runs_total{status=\"success\"}[7d]) / (rate(pipeline_runs_total{status=\"success\"}[7d]) + rate(pipeline_runs_total{status=\"failed\"}[7d])) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          },
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Ingestion Volume by Source",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-uid" },
+      "targets": [
+        {
+          "expr": "sum by (source) (increase(ingested_rows_total[7d]))",
+          "legendFormat": "{{ source }}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "source",
+        "orientation": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Regional Consumption Comparison",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT datetime AS time, region, ROUND(AVG(consommation_brute_electricite_rte)::numeric, 0) AS \\\"Consommation (MW)\\\" FROM energy.consumption WHERE region IS NOT NULL GROUP BY datetime, region ORDER BY datetime",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 1, "fillOpacity": 10 },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Generation Mix Impact",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL Energy" },
+      "targets": [
+        {
+          "rawSql": "SELECT datetime AS time, ROUND(AVG(nucle)::numeric, 0) AS \\\"Nuclear (%)\\\", ROUND(AVG(wind)::numeric, 0) AS \\\"Wind (%)\\\", ROUND(AVG(solar)::numeric, 0) AS \\\"Solar (%)\\\" FROM energy.rte_generation WHERE datetime >= NOW() - INTERVAL '90 days' GROUP BY datetime ORDER BY datetime",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "percent"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["pipeline", "monitoring", "metrics"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "Pipeline Metrics & Operations",
+  "uid": "pipeline-metrics-overview"
+}

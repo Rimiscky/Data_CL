@@ -13,11 +13,12 @@ from config.settings import (
     REQUEST_TIMEOUT,
     MAX_RETRIES,
     RETRY_DELAY,
+    REGION_ODRE_NAMES,
 )
 
 
 class ODREClient(APIClient):
-    """Client pour l'API ODRE - consommation énergétique Île-de-France."""
+    """Client pour l'API ODRE - consommation énergétique (multi-régional)."""
 
     def __init__(
         self,
@@ -108,3 +109,21 @@ class ODREClient(APIClient):
         except Exception as e:
             self.logger.error("Échec de récupération des métadonnées: %s", e)
             raise
+
+    @classmethod
+    def for_region(cls, region_key: str, max_records: int = 1000):
+        """
+        Factory method pour créer un client pour une région spécifique.
+
+        Args:
+            region_key: Clé région ('idf', 'provence', etc.)
+            max_records: Limite d'enregistrements à récupérer.
+
+        Returns:
+            Instance configurée du client.
+        """
+        if region_key not in REGION_ODRE_NAMES:
+            raise ValueError(f"Région inconnue: {region_key}")
+
+        region_name = REGION_ODRE_NAMES[region_key]
+        return cls(region=region_name)

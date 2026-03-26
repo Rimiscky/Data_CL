@@ -304,6 +304,22 @@ services:
         condition: service_healthy
     restart: "no"
 
+  pipeline-governance:
+    build:
+      context: .
+      target: production
+    container_name: energy-pipeline-governance
+    command: ["python", "scripts/run_governance.py"]
+    environment:
+      DATABASE_URL: postgresql://airflow:airflow@postgres:5432/energy_db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
 ########################
 # VOLUMES
 ########################

@@ -28,18 +28,24 @@ env
 # Données générées (Data Lake + Warehouse)
 data/raw/api/*
 data/raw/scraping/*
+data/raw/meteo/*
+data/raw/rte/*
 data/processed/*
 data/warehouse/*
+data/governance/*
 !data/raw/api/.gitkeep
 !data/raw/scraping/.gitkeep
+!data/raw/meteo/.gitkeep
+!data/raw/rte/.gitkeep
 !data/processed/.gitkeep
 !data/warehouse/.gitkeep
+!data/governance/.gitkeep
 
 # Output (dashboards générés)
 output/
 
 # Logs
-logs/*.log
+logs/
 
 # IDE
 .vscode/

@@ -17,6 +17,7 @@ from config.settings import (
     REQUEST_TIMEOUT,
     MAX_RETRIES,
     RETRY_DELAY,
+    REGION_COORDINATES,
 )
 
 
@@ -38,6 +39,7 @@ class MeteoClient(APIClient):
         self,
         latitude: float = IDF_LATITUDE,
         longitude: float = IDF_LONGITUDE,
+        region: Optional[str] = None,
     ):
         super().__init__(
             base_url=OPENMETEO_BASE_URL,
@@ -45,6 +47,10 @@ class MeteoClient(APIClient):
             max_retries=MAX_RETRIES,
             retry_delay=RETRY_DELAY,
         )
+        self.region = region
+        # Si une région est fournie, utiliser ses coordonnées
+        if region and region in REGION_COORDINATES:
+            latitude, longitude = REGION_COORDINATES[region]
         self.latitude = latitude
         self.longitude = longitude
         self.logger = get_logger(self.__class__.__name__)
@@ -93,6 +99,7 @@ class MeteoClient(APIClient):
         start_date: date,
         end_date: date,
         variables: Optional[list[str]] = None,
+        region: Optional[str] = None,
     ) -> pd.DataFrame:
         """
         Récupère les données météo et retourne un DataFrame prêt à fusionner.
@@ -101,11 +108,19 @@ class MeteoClient(APIClient):
             start_date: Date de début.
             end_date: Date de fin.
             variables: Liste des variables.
+            region: Région optionnelle (utilisera ses coordonnées si fournie).
 
         Returns:
-            DataFrame avec colonne 'datetime' en UTC.
+            DataFrame avec colonne 'datetime' en UTC et 'region' si spécifiée.
         """
-        data = self.fetch_weather(start_date, end_date, variables)
+        # Si une région est fournie, créer un client temporaire avec ses coordonnées
+        if region and region in REGION_COORDINATES:
+            lat, lon = REGION_COORDINATES[region]
+            client = MeteoClient(latitude=lat, longitude=lon, region=region)
+            data = client.fetch_weather(start_date, end_date, variables)
+        else:
+            data = self.fetch_weather(start_date, end_date, variables)
+
         hourly = data.get("hourly", {})
 
         if not hourly or "time" not in hourly:
@@ -115,6 +130,10 @@ class MeteoClient(APIClient):
         df = pd.DataFrame(hourly)
         df.rename(columns={"time": "datetime"}, inplace=True)
         df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
+
+        # Ajouter la région si elle est disponible
+        if region or self.region:
+            df["region"] = region or self.region
 
         self.logger.info("DataFrame météo: %d lignes, %d colonnes", len(df), len(df.columns))
         return df

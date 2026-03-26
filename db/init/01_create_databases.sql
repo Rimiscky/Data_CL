@@ -44,6 +44,22 @@ CREATE TABLE energy.weather (
 -- La vue croisée est créée par scripts/load_to_db.py après chargement des données
 -- (les colonnes dépendent du schéma réel des CSV)
 
+-- ── Table génération RTE (nationale) ─────────────────────
+CREATE TABLE energy.rte_generation (
+    id                  SERIAL PRIMARY KEY,
+    datetime            TIMESTAMPTZ NOT NULL,
+    date                DATE,
+    hour                SMALLINT,
+    nucle               DOUBLE PRECISION,  -- Nucléaire
+    hydro               DOUBLE PRECISION,  -- Hydro
+    wind                DOUBLE PRECISION,  -- Éolien
+    solar               DOUBLE PRECISION,  -- Solaire
+    thermal             DOUBLE PRECISION,  -- Thermique
+    other               DOUBLE PRECISION,  -- Autres
+    total_generation    DOUBLE PRECISION,  -- Total généré
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ── Table qualité (gouvernance) ─────────────────────────
 CREATE TABLE energy.quality_reports (
     id            SERIAL PRIMARY KEY,
@@ -72,7 +88,10 @@ CREATE TABLE energy.lineage (
 -- Index pour les requêtes fréquentes
 CREATE INDEX idx_consumption_datetime ON energy.consumption(datetime);
 CREATE INDEX idx_consumption_date ON energy.consumption(date);
+CREATE INDEX idx_consumption_region ON energy.consumption(region);
 CREATE INDEX idx_weather_datetime ON energy.weather(datetime);
+CREATE INDEX idx_rte_datetime ON energy.rte_generation(datetime);
+CREATE INDEX idx_rte_date ON energy.rte_generation(date);
 CREATE INDEX idx_quality_dataset ON energy.quality_reports(dataset_name);
 
 -- Permissions
