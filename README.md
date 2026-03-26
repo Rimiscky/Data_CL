@@ -4,6 +4,109 @@
 
 ---
 
+## Résumé — Ce que fait ce projet et comment l'expliquer
+
+Ce projet est un **pipeline de données de bout en bout** sur la consommation d'électricité en France. Voici ce qui a été fait, source par source, étape par étape.
+
+---
+
+### Sources de données utilisées
+
+#### 1. API ODRE — Consommation énergétique régionale
+- **Site :** https://odre.opendatasoft.com
+- **Jeu de données :** `consommation-quotidienne-brute-regionale`
+- **Comment :** L'API est publique et gratuite. Elle expose les données via des requêtes HTTP GET avec des paramètres de filtrage (région, limite, tri). On filtre par région (`Île-de-France`, `Provence-Alpes-Côte d'Azur`, etc.) et on pagine les résultats par lots de 100 enregistrements.
+- **Ce qu'on récupère :** Consommation brute d'électricité et de gaz par région, par demi-heure, depuis plusieurs mois.
+- **Script :** `src/ingestion/odre_client.py` → `scripts/ingest.py`
+
+#### 2. API Open-Meteo — Données météo historiques
+- **Site :** https://archive-api.open-meteo.com
+- **Comment :** API gratuite, sans clé d'accès. On envoie les coordonnées GPS d'une ville (latitude/longitude) et une plage de dates. L'API retourne des données horaires.
+- **Ce qu'on récupère :** Température à 2m, température ressentie, humidité relative, vitesse du vent à 10m, précipitations, couverture nuageuse, pression atmosphérique.
+- **Régions couvertes :** Paris (IDF), Aix-en-Provence, Rennes, Bordeaux — avec leurs coordonnées GPS configurées dans `config/settings.py`.
+- **Script :** `src/ingestion/meteo_client.py` → `scripts/ingest.py`
+
+#### 3. Scraping RTE éCO2mix
+- **Site scrapé :** https://www.rte-france.com/eco2mix/les-donnees-regionales
+- **Comment :** On utilise `requests` + `BeautifulSoup` pour récupérer le contenu HTML de la page. On extrait les tableaux de données et les liens de téléchargement disponibles sur la page.
+- **Ce qu'on récupère :** Structure de la page, tableaux HTML, liens vers les fichiers téléchargeables de données régionales.
+- **Script :** `src/ingestion/web_scraper.py` → `scripts/ingest.py`
+
+#### 4. API RTE — Mix de génération électrique
+- **Site :** https://data.rte-france.com
+- **Comment :** API officielle de RTE (Réseau de Transport d'Électricité). Nécessite une clé API (variable d'environnement `RTE_API_KEY`). On interroge le dataset `generation-par-filiere` pour obtenir la répartition de la production électrique nationale.
+- **Ce qu'on récupère :** Production par filière — nucléaire, hydraulique, éolien, solaire, thermique, autres.
+- **Script :** `src/ingestion/rte_client.py` → `scripts/ingest.py`
+
+#### 5. API Météo-Concept — Météo régionale (optionnel)
+- **Site :** https://api.meteo-concept.com
+- **Comment :** API payante avec clé (variable `METEO_FRANCE_API_KEY`). Offre des données météo plus précises par région française. Utilisée en complément d'Open-Meteo pour les analyses régionales avancées.
+- **Script :** `src/ingestion/meteo_france_client.py` → `scripts/ingest.py`
+
+---
+
+### Comment les données sont traitées
+
+#### Étape 1 — Ingestion (`scripts/ingest.py`)
+On appelle chaque source de données et on sauvegarde les résultats bruts dans le **Data Lake local** (`data/raw/`), en JSON et CSV, avec un horodatage dans le nom du fichier. Chaque client hérite d'une classe de base `APIClient` qui gère automatiquement les erreurs, les timeouts et les tentatives de reconnexion (3 essais avec délai croissant).
+
+#### Étape 2 — Transformation ETL (`scripts/run_etl.py`)
+Le script ETL charge les fichiers bruts et applique une chaîne de transformations :
+1. **Renommage** des colonnes vers un schéma normalisé
+2. **Conversion** de la colonne `datetime` en format UTC
+3. **Gestion des valeurs manquantes** (remplacement par zéro pour les colonnes numériques)
+4. **Enrichissement temporel** : ajout de `heure`, `jour_semaine`, `est_weekend`, `trimestre`
+5. **Calcul de métriques** : consommation totale, ratio électricité/total, variation horaire
+6. **Fusion énergie × météo** par jointure temporelle (`merge_asof`) — on associe chaque mesure énergétique à la mesure météo la plus proche dans le temps (tolérance : 1 heure)
+7. **Validation** : suppression des doublons, détection des colonnes avec trop de valeurs nulles
+8. Sauvegarde du résultat dans `data/warehouse/energy_consumption_idf/latest.csv`
+
+#### Étape 3 — Chargement en base (`scripts/load_to_db.py`)
+Les données transformées sont chargées dans PostgreSQL (base `energy_db`, schéma `energy`) :
+- Table `consumption` : données énergétiques par région
+- Table `weather` : météo horaire
+- Table `rte_generation` : mix de génération
+- Vue SQL `consumption_weather` : jointure croisée prête pour Grafana
+
+#### Étape 4 — Gouvernance (`scripts/run_governance.py`)
+On mesure la qualité des données avec un score de 0 à 100 % basé sur :
+- Complétude des colonnes clés
+- Absence de doublons
+- Cohérence des plages de valeurs
+- Résultat sauvegardé en JSON et chargé dans `energy.quality_reports`
+
+#### Étape 5 — Analyse (`scripts/run_analysis.py`)
+Trois analyses sont lancées :
+- **Corrélation** : mesure le lien entre température et consommation (coefficient de Pearson)
+- **Clustering** : regroupe les régions selon leur profil de consommation avec l'algorithme K-means
+- **Prévision** : prédit la consommation des 7 prochains jours avec ARIMA et Prophet
+- Un rapport HTML est généré avec tous les résultats
+
+---
+
+### Comment tout est orchestré
+
+Le DAG Airflow `energy_pipeline_multi_sources` (planifié tous les jours à 6h UTC) exécute automatiquement toutes ces étapes dans le bon ordre :
+
+```
+[Ingestion ODRE × 4 régions] ──┐
+[Ingestion Météo Open-Meteo]   ├──→ ETL → Chargement DB → Dashboard
+[Ingestion RTE génération]  ───┘                       → Gouvernance
+```
+
+Chaque étape est une tâche Airflow indépendante. Les ingestions s'exécutent en parallèle pour gagner du temps, puis l'ETL attend que toutes soient terminées avant de démarrer.
+
+---
+
+### Ce qu'on peut voir dans Grafana
+
+Une fois les données chargées, deux tableaux de bord sont disponibles :
+
+1. **Énergie × Météo** (`energy_overview`) : courbe de consommation, corrélation température/consommation, profil horaire moyen, score qualité
+2. **Supervision du pipeline** (`pipeline_metrics`) : durée d'exécution, volume ingéré, taux de succès, fraîcheur des données
+
+---
+
 ## Architecture générale
 
 ```
