@@ -8,13 +8,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import pandas as pd
+import pandas as pd  # noqa: E402
 
-from src.analysis.clustering import ConsumptionClustering
-from src.analysis.correlation_analysis import CorrelationAnalyzer
-from src.analysis.forecasting import ConsumptionForecaster
-from src.utils.logger import get_logger
-from config.settings import WAREHOUSE_DIR, QUALITY_DIR
+from src.analysis.clustering import ConsumptionClustering  # noqa: E402
+from src.analysis.correlation_analysis import CorrelationAnalyzer  # noqa: E402
+from src.analysis.forecasting import ConsumptionForecaster  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
+from config.settings import WAREHOUSE_DIR, QUALITY_DIR  # noqa: E402
 
 logger = get_logger("run_analysis")
 
@@ -130,7 +130,8 @@ def generate_html_report(
             body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
             h1 { color: #333; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
             h2 { color: #0066cc; margin-top: 30px; }
-            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            .section { background: white; padding: 20px; margin: 20px 0;
+                border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
             table { width: 100%; border-collapse: collapse; margin: 10px 0; }
             th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
             th { background: #0066cc; color: white; }

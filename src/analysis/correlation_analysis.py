@@ -1,9 +1,8 @@
 """
 Analyse de corrélation — Étude des relations entre température et consommation d'énergie.
 """
-from typing import Dict, Tuple
+from typing import Dict
 
-import numpy as np
 import pandas as pd
 
 from src.utils.logger import get_logger

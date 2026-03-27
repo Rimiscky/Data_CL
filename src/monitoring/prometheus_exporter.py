@@ -3,7 +3,6 @@ Exporter Prometheus — Exposes pipeline metrics.
 Métriques: durée de pipeline, lignes ingérées, score qualité, erreurs.
 """
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -162,7 +161,7 @@ def export_metrics_file(metrics: PipelineMetrics, filepath: Path):
         filepath: Chemin du fichier de sortie.
     """
     try:
-        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+        from prometheus_client import generate_latest
 
         output = generate_latest(metrics.registry)
         filepath.parent.mkdir(parents=True, exist_ok=True)

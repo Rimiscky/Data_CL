@@ -2,7 +2,7 @@
 Clustering — Segmentation des régions par profil de consommation énergétique.
 Utilise K-means pour identifier des profils distincts.
 """
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd

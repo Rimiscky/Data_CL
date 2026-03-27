@@ -34,6 +34,10 @@ OPENMETEO_BASE_URL = "https://archive-api.open-meteo.com/v1"
 METEO_FRANCE_BASE_URL = "https://api.meteo-concept.com/api"
 METEO_FRANCE_API_KEY = os.getenv("METEO_FRANCE_API_KEY", "")
 
+# Coordonnées IDF par défaut
+IDF_LATITUDE = 48.8566
+IDF_LONGITUDE = 2.3522
+
 # Configuration multi-régions
 REGIONS = ["idf", "provence", "bretagne", "nouvelle-aquitaine"]
 REGION_COORDINATES = {

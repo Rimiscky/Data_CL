@@ -2,7 +2,7 @@
 Forecasting — Prédiction de la consommation d'énergie.
 Utilise ARIMA et Prophet pour des prévisions multi-horizons.
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Dict, Optional, Tuple
 
 import numpy as np
