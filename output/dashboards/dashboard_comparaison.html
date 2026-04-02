@@ -143,6 +143,15 @@
       </div>
     </div>
 
+    <div class="filter-group">
+      <label>Type de jour</label>
+      <div class="season-btns">
+        <button class="season-btn active" data-jour="Tous" onclick="setJour(this)">Tous</button>
+        <button class="season-btn" data-jour="Semaine" onclick="setJour(this)">📅 Semaine</button>
+        <button class="season-btn" data-jour="Weekend" onclick="setJour(this)">🌿 Weekend</button>
+      </div>
+    </div>
+
     <button class="btn-apply" onclick="applyFilters()">▶ Comparer</button>
   </div>
 </div>
@@ -244,11 +253,19 @@ const COLORS = {
 };
 
 let activeSeason = "Toutes";
+let activeJour = "Tous";
+const WEEKEND = ["Saturday","Sunday"];
 
 function setSeason(btn) {
-  document.querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
+  btn.closest('.season-btns').querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   activeSeason = btn.dataset.season;
+}
+
+function setJour(btn) {
+  btn.closest('.season-btns').querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeJour = btn.dataset.jour;
 }
 
 function fmt(n){ return n.toLocaleString('fr-FR', {maximumFractionDigits:0}); }
@@ -259,6 +276,8 @@ function filterData(region) {
   return DATA[region].filter(d => {
     if(d.date < start || d.date > end) return false;
     if(activeSeason !== "Toutes" && d.saison !== activeSeason) return false;
+    if(activeJour === "Weekend" && !WEEKEND.includes(d.jour_semaine)) return false;
+    if(activeJour === "Semaine" && WEEKEND.includes(d.jour_semaine)) return false;
     return true;
   });
 }
