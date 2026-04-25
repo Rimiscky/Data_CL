@@ -1,5 +1,5 @@
 """
-Module de logging centralisé pour le projet.
+Module de logging centralisé pour le projet Data .
 """
 import logging
 import sys
