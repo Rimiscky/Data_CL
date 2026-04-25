@@ -2,8 +2,7 @@
 DAG Airflow — Pipeline orchestré multi-sources et multi-régions.
 
 Orchestration : Ingestion multi-sources → ETL → Chargement DB → Dashboard → Gouvernance
-Sources : ODRE (énergie), RTE (génération), Open-Meteo, Météo-Concept
-Planification : tous les jours à 6h UTC
+Sources : ODRE (énergie), RTE (génération), Open-Meteo, Météo-Concept ? Planification : tous les jours à 6h UTC
 """
 from datetime import datetime, timedelta
 
