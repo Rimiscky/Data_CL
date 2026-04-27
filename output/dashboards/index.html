@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projet Data Engineering — Tableaux de bord</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: white;
+      padding: 50px 40px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.2em; margin-bottom: 10px; }
+    .header p { opacity: .75; font-size: 1em; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.12);
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: .85em;
+      margin-top: 14px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 28px;
+      padding: 50px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.09);
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0,0,0,.14);
+    }
+
+    .card-header {
+      padding: 28px 28px 18px;
+      border-bottom: 3px solid #f0f0f0;
+    }
+    .card-icon { font-size: 2.5em; margin-bottom: 12px; }
+    .card-title { font-size: 1.25em; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+    .card-subtitle { font-size: .85em; color: #888; }
+
+    .card-body { padding: 20px 28px 24px; }
+    .feature-list { list-style: none; }
+    .feature-list li { font-size: .88em; color: #555; padding: 5px 0; }
+    .feature-list li::before { content: '✓ '; color: #667eea; font-weight: 700; }
+
+    .card-footer {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: .88em;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #f0f0f0;
+      color: #666;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: .75em;
+      margin: 3px 3px 0 0;
+    }
+    .tag.blue { background: #e8edfb; color: #667eea; }
+    .tag.green { background: #e8f5e9; color: #2ca02c; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-top: 1px solid #f0f0f0;
+      padding: 0;
+    }
+    .stat { text-align: center; padding: 14px; border-right: 1px solid #f0f0f0; }
+    .stat:last-child { border-right: none; }
+    .stat-val { font-size: 1.3em; font-weight: 700; color: #1a1a2e; }
+    .stat-label { font-size: .72em; color: #aaa; text-transform: uppercase; }
+
+    .footer {
+      text-align: center;
+      padding: 30px;
+      color: #bbb;
+      font-size: .8em;
+    }
+
+    @media(max-width: 600px) {
+      .cards { padding: 20px; }
+      .header h1 { font-size: 1.5em; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Projet Data Engineering</h1>
+  <p>Tableaux de bord interactifs — Consommation énergétique France</p>
+  <div class="badge">ODRE · Open Data Réseaux Énergies · AWS EC2</div>
+</div>
+
+<div class="cards">
+
+  <!-- Dashboard IDF -->
+  <a class="card" href="dashboard_energy_idf.html">
+    <div class="card-header">
+      <div class="card-icon">🗼</div>
+      <div class="card-title">Île-de-France</div>
+      <div class="card-subtitle">Consommation électrique régionale détaillée</div>
+      <div style="margin-top:10px;">
+        <span class="tag blue">Filtres interactifs</span>
+        <span class="tag blue">6 graphiques</span>
+        <span class="tag green">Temps réel</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="feature-list">
+        <li>Filtre par date, saison, type de jour</li>
+        <li>Filtre tranche horaire (pointe / creuse)</li>
+        <li>KPIs : moyenne, pic, écart-type</li>
+        <li>Profil horaire et heatmap hebdomadaire</li>
+        <li>Distribution et boxplot par saison</li>
+      </ul>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">500</div><div class="stat-label">Points</div></div>
+      <div class="stat"><div class="stat-val">6</div><div class="stat-label">Graphiques</div></div>
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">Filtres</div></div>
+    </div>
+    <div class="card-footer">▶ Ouvrir le dashboard →</div>
+  </a>
+
+  <!-- Dashboard Comparaison -->
+  <a class="card" href="dashboard_comparaison.html">
+    <div class="card-header">
+      <div class="card-icon">🗺️</div>
+      <div class="card-title">Comparaison Multi-Régions</div>
+      <div class="card-subtitle">Analyse comparative inter-régionale France</div>
+      <div style="margin-top:10px;">
+        <span class="tag blue">8 régions</span>
+        <span class="tag blue">5 graphiques</span>
+        <span class="tag green">Comparatif</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="feature-list">
+        <li>Sélection de 2 régions à comparer</li>
+        <li>Filtre saison et type de jour</li>
+        <li>Évolution temporelle superposée</li>
+        <li>Radar profil saisonnier</li>
+        <li>Écart quotidien A − B</li>
+      </ul>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">8</div><div class="stat-label">Régions</div></div>
+      <div class="stat"><div class="stat-val">5</div><div class="stat-label">Graphiques</div></div>
+      <div class="stat"><div class="stat-val">365</div><div class="stat-label">Jours</div></div>
+    </div>
+    <div class="card-footer">▶ Ouvrir le dashboard →</div>
+  </a>
+
+</div>
+
+<div class="footer">
+  Pipeline Data Énergétique · Sources : ODRE, Open-Meteo · Déployé sur AWS EC2 · Mise à jour quotidienne via GitHub Actions
+</div>
+
+</body>
+</html>
