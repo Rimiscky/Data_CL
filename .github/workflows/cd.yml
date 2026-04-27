@@ -73,7 +73,15 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 15m
+          debug: true
           script: |
+            echo "=== Connexion SSH réussie ==="
+            echo "Host: $(hostname)"
+            echo "User: $(whoami)"
+
             # Pull de la dernière image
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
@@ -91,4 +99,4 @@ jobs:
               ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
               python scripts/run_full_pipeline.py
 
-            echo "Déploiement terminé !"
+            echo "=== Déploiement terminé ==="
