@@ -181,8 +181,9 @@ class DataAnalyzer:
         series = self._df[elec_col].dropna()
         z_scores = np.abs((series - series.mean()) / series.std())
         mask = z_scores > z_threshold
-        anomalies = self._df.loc[mask].copy()
-        anomalies["z_score"] = z_scores[mask].round(2)
+        anomaly_idx = mask[mask].index
+        anomalies = self._df.loc[anomaly_idx].copy()
+        anomalies["z_score"] = z_scores[anomaly_idx].round(2)
 
         self.logger.info(
             "Anomalies détectées: %d/%d (seuil z=%.1f)",
