@@ -13,7 +13,7 @@ Ce projet est un **pipeline de données de bout en bout** sur la consommation d'
 
 ### Sources de données utilisées
 
-#### 1. API ODRE — Consommation énergétique régionale
+#### 1. API ODRE - Consommation énergétique régionale
 - **Site :** https://odre.opendatasoft.com
 - **Jeu de données :** `consommation-quotidienne-brute-regionale`
 - **Comment :** L'API est publique et gratuite. Elle expose les données via des requêtes HTTP GET avec des paramètres de filtrage (région, limite, tri). On filtre par région (`Île-de-France`, `Provence-Alpes-Côte d'Azur`, etc.) et on pagine les résultats par lots de 100 enregistrements.
