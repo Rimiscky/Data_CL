@@ -4,7 +4,8 @@
 
 ---
 
-## Résumé — Ce que fait ce projet et comment l'expliquer
+## Résumé 
+- Ce que fait ce projet et comment l'expliquer
 
 Ce projet est un **pipeline de données de bout en bout** sur la consommation d'électricité en France. Voici ce qui a été fait, source par source, étape par étape.
 
