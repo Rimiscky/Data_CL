@@ -37,7 +37,7 @@ jobs:
         run: python scripts/ingest.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-          METEO_FRANCE_API_KEY: ${{ secrets.METEO_FRANCE_API_KEY }}
+
           RTE_API_KEY: ${{ secrets.RTE_API_KEY }}
 
       - name: Étape 2/3 — ETL

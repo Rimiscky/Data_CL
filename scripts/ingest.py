@@ -14,7 +14,6 @@ import pandas as pd  # noqa: E402
 
 from src.ingestion import ODREClient, MeteoClient, DataSaver  # noqa: E402
 from src.ingestion.rte_client import RTEClient  # noqa: E402
-from src.ingestion.meteo_france_client import MeteoFranceClient  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 from config.settings import (  # noqa: E402
     RAW_API_DIR,
@@ -131,38 +130,6 @@ def ingest_rte_realtime(max_records: int = 500) -> Path:
         return None
 
 
-def ingest_meteo_france(region: str = "idf", start_date: date = None, end_date: date = None) -> Path:
-    """Ingestion des données météo Météo-Concept pour une région."""
-    logger.info("=== Démarrage ingestion Météo-Concept région %s ===", region)
-    saver = DataSaver(RAW_METEO_DIR)
-
-    if end_date is None:
-        end_date = date.today() - timedelta(days=1)
-    if start_date is None:
-        start_date = end_date - timedelta(days=30)
-
-    try:
-        with MeteoFranceClient() as client:
-            df = client.fetch_weather_df(region, start_date, end_date)
-
-            if df.empty:
-                logger.warning("Aucune donnée Météo-Concept pour %s", region)
-                return None
-
-            prefix = f"meteo_france_{region}"
-            csv_path = saver.save_dataframe(df, prefix=prefix, fmt="csv")
-            saver.save_dataframe(df, prefix=prefix, fmt="json")
-
-            logger.info(
-                "=== Ingestion Météo-Concept %s terminée: %d enregistrements ===",
-                region.upper(), len(df),
-            )
-            return csv_path
-    except Exception as e:
-        logger.error("Erreur ingestion Météo-Concept %s: %s", region, e)
-        return None
-
-
 def ingest_all_regions(max_records: int = 500) -> list[Path]:
     """Ingère les données pour toutes les régions configurées."""
     logger.info("=== Ingestion multi-régions ===")
@@ -217,15 +184,6 @@ def main():
             logger.info("Données RTE sauvegardées: %s", rte_path)
     except Exception as e:
         logger.error("Erreur ingestion RTE: %s", e)
-
-    # Ingestion Météo-Concept (optionnel)
-    try:
-        for region in REGIONS[:1]:  # Commencer par IDF
-            meteo_fr_path = ingest_meteo_france(region=region)
-            if meteo_fr_path:
-                logger.info("Données Météo-Concept %s sauvegardées: %s", region.upper(), meteo_fr_path)
-    except Exception as e:
-        logger.error("Erreur ingestion Météo-Concept: %s", e)
 
     logger.info("Pipeline d'ingestion terminé.")
 
