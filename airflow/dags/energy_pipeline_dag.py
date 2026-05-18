@@ -140,6 +140,19 @@ with DAG(
     )
 
     # ──────────────────────────────────────────────────────
+    # Nettoyage des fichiers anciens (rétention)
+    # ──────────────────────────────────────────────────────
+    cleanup_old_files = BashOperator(
+        task_id="cleanup_old_files",
+        bash_command=(
+            "find /opt/airflow/data/raw -type f -mtime +7 -delete && "
+            "find /opt/airflow/data/warehouse -type f -mtime +30 -delete && "
+            "find /opt/airflow/logs -type f -mtime +14 -delete && "
+            "echo 'Nettoyage terminé'"
+        ),
+    )
+
+    # ──────────────────────────────────────────────────────
     # Dépendances : Orchestration du pipeline
     # ──────────────────────────────────────────────────────
     # 1. Ingestions en parallèle (ODRE multi-région, Météo, RTE)
@@ -147,7 +160,9 @@ with DAG(
     # 3. Chargement DB
     # 4. Dashboard + Gouvernance (en parallèle)
     # 5. Publication des dashboards (après génération)
+    # 6. Nettoyage (après tout le reste)
     [ingest_energy_group, ingest_meteo, ingest_rte] >> run_etl
     run_etl >> load_to_postgres
     load_to_postgres >> [generate_dashboard, run_governance]
     generate_dashboard >> publish_dashboards
+    [publish_dashboards, run_governance] >> cleanup_old_files
