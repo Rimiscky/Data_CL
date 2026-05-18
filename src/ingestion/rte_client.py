@@ -29,6 +29,7 @@ class RTEClient(APIClient):
         )
         self.api_key = api_key
         if self.api_key:
+            # guard : permet d'instancier le client sans clé en dev/test sans lever d'erreur
             self.session.headers.update({"Authorization": f"Bearer {self.api_key}"})
 
     def fetch_generation_mix(
@@ -48,7 +49,7 @@ class RTEClient(APIClient):
         Returns:
             Données JSON de l'API.
         """
-        endpoint = "datasets/generation-par-filiere/records"
+        endpoint = "catalog/datasets/generation-par-filiere/records"
         params = {
             "limit": limit or 100,
             "offset": offset,
@@ -79,10 +80,10 @@ class RTEClient(APIClient):
         """
         all_records = []
         offset = 0
-        batch_size = 100
+        batch_size = 100  # taille de page max documentée par l'API RTE
 
         while offset < max_records:
-            current_limit = min(batch_size, max_records - offset)
+            current_limit = min(batch_size, max_records - offset)  # dernière page peut être plus petite
             data = self.fetch_generation_mix(limit=current_limit, offset=offset)
             records = data.get("results", [])
 
@@ -90,7 +91,7 @@ class RTEClient(APIClient):
                 break
 
             all_records.extend(records)
-            offset += len(records)
+            offset += len(records)  # avance du nombre réel retourné, pas du current_limit
             self.logger.info(
                 "Progression: %d/%d enregistrements génération",
                 len(all_records),
@@ -102,7 +103,7 @@ class RTEClient(APIClient):
 
     def get_dataset_info(self) -> dict[str, Any]:
         """Récupère les métadonnées du dataset de génération."""
-        endpoint = "datasets/generation-par-filiere"
+        endpoint = "catalog/datasets/generation-par-filiere"
         try:
             return self.get(endpoint)
         except Exception as e:
