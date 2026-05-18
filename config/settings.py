@@ -24,7 +24,7 @@ ODRE_ROWS_LIMIT = 100
 RTE_ECO2MIX_URL = "https://www.rte-france.com/eco2mix/les-donnees-regionales"
 
 # API RTE — Données de génération en temps réel
-RTE_API_BASE_URL = "https://data.rte-france.com/api/explore/v2.1"
+# Token OAuth2 Base64 (client_id:client_secret encodé en base64)
 RTE_API_KEY = os.getenv("RTE_API_KEY", "")
 
 # API Open-Meteo — Données météo historiques (gratuit, sans clé)

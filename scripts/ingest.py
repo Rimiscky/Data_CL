@@ -99,31 +99,23 @@ def ingest_meteo(start_date: date = None, end_date: date = None) -> Path:
 
 
 def ingest_rte_realtime(max_records: int = 500) -> Path:
-    """Ingestion des données RTE - génération d'électricité."""
+    """Ingestion des données RTE - génération réelle par filière (OAuth2)."""
     logger.info("=== Démarrage ingestion RTE génération ===")
     saver = DataSaver(RAW_RTE_DIR)
 
     try:
         with RTEClient() as client:
-            # Récupérer les métadonnées
-            info = client.get_dataset_info()
-            logger.info("Dataset RTE: %s", info.get("dataset", {}).get("dataset_id", "N/A"))
-
-            # Récupérer les données de génération
-            records = client.fetch_all_generation(max_records=max_records)
+            records = client.fetch_actual_generation()
 
             if not records:
                 logger.warning("Aucune donnée RTE récupérée")
                 return None
 
-            # Sauvegarder en JSON et CSV
             prefix = "rte_generation_mix"
             json_path = saver.save_json(records, prefix=prefix)
             saver.save_csv(records, prefix=prefix)
 
-            logger.info(
-                "=== Ingestion RTE terminée: %d enregistrements ===", len(records)
-            )
+            logger.info("=== Ingestion RTE terminée: %d filières ===", len(records))
             return json_path
     except Exception as e:
         logger.error("Erreur ingestion RTE: %s", e)

@@ -1,111 +1,100 @@
 """
-Client spécialisé pour l'API RTE (Réseau de Transport d'Électricité).
-Récupère les données de génération d'électricité en temps réel et historiques.
+Client pour l'API RTE OAuth2 (digital.iservices.rte-france.com).
+Récupère les données de génération réelle par filière (nucléaire, éolien, solaire, etc.).
 """
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from src.ingestion.api_client import APIClient
-from config.settings import (
-    RTE_API_BASE_URL,
-    RTE_API_KEY,
-    REQUEST_TIMEOUT,
-    MAX_RETRIES,
-    RETRY_DELAY,
-)
+import requests
+
+from src.utils.logger import get_logger
+from config.settings import REQUEST_TIMEOUT, MAX_RETRIES, RETRY_DELAY
+
+RTE_TOKEN_URL = "https://digital.iservices.rte-france.com/token/oauth/"
+RTE_API_BASE = "https://digital.iservices.rte-france.com/open_api/actual_generation/v1"
 
 
-class RTEClient(APIClient):
-    """Client pour l'API RTE - génération d'électricité nationale."""
+class RTEClient:
+    """Client OAuth2 pour l'API RTE — génération réelle par filière."""
 
-    def __init__(
-        self,
-        api_key: str = RTE_API_KEY,
-    ):
-        super().__init__(
-            base_url=RTE_API_BASE_URL,
+    def __init__(self, oauth_token: str = ""):
+        self.oauth_token = oauth_token or os.getenv("RTE_API_KEY", "")
+        self.logger = get_logger(self.__class__.__name__)
+        self.session = requests.Session()
+        self._access_token: Optional[str] = None
+        self._token_expiry: Optional[datetime] = None
+
+    def _get_access_token(self) -> str:
+        """Obtient un access token OAuth2 via client credentials."""
+        if self._access_token and self._token_expiry and datetime.now(timezone.utc) < self._token_expiry:
+            return self._access_token
+
+        self.logger.info("Obtention du token OAuth2 RTE...")
+        response = requests.post(
+            RTE_TOKEN_URL,
+            headers={
+                "Authorization": f"Basic {self.oauth_token}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data={"grant_type": "client_credentials"},
             timeout=REQUEST_TIMEOUT,
-            max_retries=MAX_RETRIES,
-            retry_delay=RETRY_DELAY,
         )
-        self.api_key = api_key
-        if self.api_key:
-            # guard : permet d'instancier le client sans clé en dev/test sans lever d'erreur
-            self.session.headers.update({"Authorization": f"Bearer {self.api_key}"})
+        response.raise_for_status()
+        data = response.json()
+        self._access_token = data["access_token"]
+        expires_in = int(data.get("expires_in", 3600))
+        self._token_expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in - 60)
+        self.logger.info("Token OAuth2 obtenu (expire dans %ds)", expires_in)
+        return self._access_token
 
-    def fetch_generation_mix(
+    def fetch_actual_generation(
         self,
-        limit: Optional[int] = None,
-        offset: int = 0,
-        order_by: str = "date DESC",
-    ) -> dict[str, Any]:
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
         """
-        Récupère les données de mix de génération d'électricité.
+        Récupère la génération réelle par filière.
 
         Args:
-            limit: Nombre de lignes à récupérer.
-            offset: Décalage pour la pagination.
-            order_by: Tri des résultats.
+            start_date: Date début ISO8601 (ex: 2026-05-01T00:00:00+02:00)
+            end_date: Date fin ISO8601
 
         Returns:
-            Données JSON de l'API.
+            Liste des enregistrements de génération.
         """
-        endpoint = "catalog/datasets/generation-par-filiere/records"
-        params = {
-            "limit": limit or 100,
-            "offset": offset,
-            "order_by": order_by,
-        }
+        if not self.oauth_token:
+            self.logger.warning("RTE_API_KEY non configuré, ingestion RTE ignorée")
+            return []
+
+        if end_date is None:
+            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        if start_date is None:
+            start_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
         try:
-            data = self.get(endpoint, params=params)
-            total = data.get("total_count", 0)
-            records = data.get("results", [])
-            self.logger.info(
-                "Récupéré %d enregistrements génération sur %d total", len(records), total
+            token = self._get_access_token()
+            response = self.session.get(
+                f"{RTE_API_BASE}/actual_generations_per_production_type",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"start_date": start_date, "end_date": end_date},
+                timeout=REQUEST_TIMEOUT,
             )
-            return data
+            response.raise_for_status()
+            data = response.json()
+            records = data.get("actual_generations_per_production_type", [])
+            self.logger.info("Récupéré %d filières de génération RTE", len(records))
+            return records
         except Exception as e:
-            self.logger.error("Échec de récupération des données RTE: %s", e)
+            self.logger.error("Échec récupération génération RTE: %s", e)
             raise
 
-    def fetch_all_generation(self, max_records: int = 1000) -> list[dict]:
-        """
-        Récupère toutes les données de génération avec pagination automatique.
+    def close(self):
+        self.session.close()
 
-        Args:
-            max_records: Nombre maximum d'enregistrements à récupérer.
+    def __enter__(self):
+        return self
 
-        Returns:
-            Liste de tous les enregistrements.
-        """
-        all_records = []
-        offset = 0
-        batch_size = 100  # taille de page max documentée par l'API RTE
-
-        while offset < max_records:
-            current_limit = min(batch_size, max_records - offset)  # dernière page peut être plus petite
-            data = self.fetch_generation_mix(limit=current_limit, offset=offset)
-            records = data.get("results", [])
-
-            if not records:
-                break
-
-            all_records.extend(records)
-            offset += len(records)  # avance du nombre réel retourné, pas du current_limit
-            self.logger.info(
-                "Progression: %d/%d enregistrements génération",
-                len(all_records),
-                max_records,
-            )
-
-        self.logger.info("Total récupéré: %d enregistrements génération", len(all_records))
-        return all_records
-
-    def get_dataset_info(self) -> dict[str, Any]:
-        """Récupère les métadonnées du dataset de génération."""
-        endpoint = "catalog/datasets/generation-par-filiere"
-        try:
-            return self.get(endpoint)
-        except Exception as e:
-            self.logger.error("Échec de récupération des métadonnées RTE: %s", e)
-            raise
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
