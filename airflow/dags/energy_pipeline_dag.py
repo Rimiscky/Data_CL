@@ -15,22 +15,18 @@ from airflow.utils.dates import days_ago
 REGIONS = ["idf", "provence", "bretagne", "nouvelle-aquitaine"]
 
 
-def on_failure_callback(context):
-    """Callback appelé en cas d'erreur."""
-    task = context["task"]
-    execution_date = context["execution_date"]
-    print(f"Task '{task.task_id}' échouée à {execution_date}")
+ALERT_EMAIL = "rimiscky@gmail.com"
 
 
 default_args = {
     "owner": "data-team",
     "depends_on_past": False,
-    "email_on_failure": False,
+    "email": [ALERT_EMAIL],
+    "email_on_failure": True,
     "email_on_retry": False,
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
     "start_date": days_ago(1),
-    "on_failure_callback": on_failure_callback,
 }
 
 

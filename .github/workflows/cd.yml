@@ -85,6 +85,7 @@ jobs:
             --restart unless-stopped \
             -e METEO_FRANCE_API_KEY=${{ secrets.METEO_FRANCE_API_KEY }} \
             -e RTE_API_KEY=${{ secrets.RTE_API_KEY }} \
+            -e AIRFLOW_SMTP_PASSWORD=${{ secrets.AIRFLOW_SMTP_PASSWORD }} \
             -v /home/ubuntu/data:/app/data \
             -v /home/ubuntu/logs:/app/logs \
             -v /home/ubuntu/output:/app/output \
