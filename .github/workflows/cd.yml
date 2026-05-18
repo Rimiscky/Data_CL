@@ -86,7 +86,6 @@ jobs:
           docker run -d \
             --name energy-pipeline \
             --restart unless-stopped \
-
             -e RTE_API_KEY=${{ secrets.RTE_API_KEY }} \
             -e AIRFLOW_SMTP_PASSWORD=${{ secrets.AIRFLOW_SMTP_PASSWORD }} \
             -v /home/ubuntu/data:/app/data \
