@@ -100,7 +100,7 @@ jobs:
         run: |
           pkill -f "http.server 8080" 2>/dev/null || true
           sleep 1
-          mkdir -p /home/ubuntu/www/dashboards
-          cd /home/ubuntu/www
+          mkdir -p /home/ubuntu/output/dashboards
+          cd /home/ubuntu/output/dashboards
           nohup python3 -m http.server 8080 > /tmp/server.log 2>&1 &
           echo "Serveur HTTP démarré sur le port 8080"

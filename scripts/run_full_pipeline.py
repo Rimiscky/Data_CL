@@ -35,8 +35,9 @@ def main():
     logger.info("=" * 50)
 
     steps = [
-        ("Étape 1/2 : Ingestion", "scripts/ingest.py"),
-        ("Étape 2/2 : ETL", "scripts/run_etl.py"),
+        ("Étape 1/3 : Ingestion", "scripts/ingest.py"),
+        ("Étape 2/3 : ETL", "scripts/run_etl.py"),
+        ("Étape 3/3 : Dashboard", "scripts/run_dashboard.py"),
     ]
 
     for name, script in steps:
