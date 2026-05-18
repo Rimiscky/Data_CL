@@ -27,9 +27,9 @@ class Transformer:
         "date_heure": "datetime",
         "code_insee_region": "region_code",
         "region": "region_name",
-        "consommation_brute_electricite_mw": "elec_consumption_mw",
-        "consommation_brute_gaz_mw": "gas_consumption_mw",
-        "consommation_brute_totale_mw": "total_consumption_mw",
+        "consommation_brute_electricite_rte": "elec_consumption_mw",
+        "consommation_brute_gaz_totale": "gas_consumption_mw",
+        "consommation_brute_totale": "total_consumption_mw",
     }
 
     def __init__(self, df: pd.DataFrame):
