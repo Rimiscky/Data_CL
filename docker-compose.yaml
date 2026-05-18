@@ -113,6 +113,7 @@ services:
       - ./data:/opt/airflow/data
       - ./output:/opt/airflow/output
       - ./logs:/opt/airflow/logs
+      - /home/ubuntu/www:/home/ubuntu/www
     ports:
       - "8080:8080"
     command: webserver
@@ -145,6 +146,7 @@ services:
       - ./data:/opt/airflow/data
       - ./output:/opt/airflow/output
       - ./logs:/opt/airflow/logs
+      - /home/ubuntu/www:/home/ubuntu/www
     command: scheduler
 
 ########################

@@ -129,12 +129,25 @@ with DAG(
     )
 
     # ──────────────────────────────────────────────────────
+    # Publication des dashboards vers le serveur HTTP
+    # ──────────────────────────────────────────────────────
+    publish_dashboards = BashOperator(
+        task_id="publish_dashboards",
+        bash_command=(
+            "mkdir -p /home/ubuntu/www/dashboards && "
+            "cp -r /opt/airflow/output/dashboards/* /home/ubuntu/www/dashboards/"
+        ),
+    )
+
+    # ──────────────────────────────────────────────────────
     # Dépendances : Orchestration du pipeline
     # ──────────────────────────────────────────────────────
     # 1. Ingestions en parallèle (ODRE multi-région, Météo, RTE)
     # 2. ETL (attend tous les ingests)
     # 3. Chargement DB
     # 4. Dashboard + Gouvernance (en parallèle)
+    # 5. Publication des dashboards (après génération)
     [ingest_energy_group, ingest_meteo, ingest_rte] >> run_etl
     run_etl >> load_to_postgres
     load_to_postgres >> [generate_dashboard, run_governance]
+    generate_dashboard >> publish_dashboards
