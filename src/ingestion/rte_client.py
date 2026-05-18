@@ -5,6 +5,7 @@ Récupère les données de génération réelle par filière (nucléaire, éolie
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -13,6 +14,7 @@ from config.settings import REQUEST_TIMEOUT, MAX_RETRIES, RETRY_DELAY
 
 RTE_TOKEN_URL = "https://digital.iservices.rte-france.com/token/oauth/"
 RTE_API_BASE = "https://digital.iservices.rte-france.com/open_api/actual_generation/v1"
+PARIS_TZ = ZoneInfo("Europe/Paris")
 
 
 class RTEClient:
@@ -67,10 +69,14 @@ class RTEClient:
             self.logger.warning("RTE_API_KEY non configuré, ingestion RTE ignorée")
             return []
 
+        def _fmt(dt: datetime) -> str:
+            s = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+            return s[:-2] + ":" + s[-2:]
+
         if end_date is None:
-            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            end_date = _fmt(datetime.now(PARIS_TZ))
         if start_date is None:
-            start_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            start_date = _fmt(datetime.now(PARIS_TZ) - timedelta(days=1))
 
         try:
             token = self._get_access_token()
