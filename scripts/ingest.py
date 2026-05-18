@@ -12,16 +12,16 @@ from datetime import date, timedelta  # noqa: E402
 
 import pandas as pd  # noqa: E402
 
-from src.ingestion import ODREClient, MeteoClient, WebScraper, DataSaver  # noqa: E402
+from src.ingestion import ODREClient, MeteoClient, DataSaver  # noqa: E402
 from src.ingestion.rte_client import RTEClient  # noqa: E402
 from src.ingestion.meteo_france_client import MeteoFranceClient  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 from config.settings import (  # noqa: E402
     RAW_API_DIR,
-    RAW_SCRAPING_DIR,
+
     RAW_METEO_DIR,
     RAW_RTE_DIR,
-    RTE_ECO2MIX_URL,
+
     REGIONS,
 )
 
@@ -60,36 +60,6 @@ def ingest_api(region: str = "idf", max_records: int = 500) -> Path:
     except Exception as e:
         logger.error("Erreur ingestion API pour %s: %s", region, e)
         return None
-
-
-def ingest_scraping() -> Path:
-    """Ingestion des données via scraping."""
-    logger.info("=== Démarrage ingestion Scraping ===")
-    saver = DataSaver(RAW_SCRAPING_DIR)
-
-    with WebScraper() as scraper:
-        soup = scraper.fetch_page(RTE_ECO2MIX_URL)
-        if soup is None:
-            logger.warning("Page non récupérée")
-            return None
-
-        # Extraire les tables
-        tables = scraper.extract_tables(soup)
-        logger.info("Tables trouvées: %d", len(tables))
-
-        # Extraire les liens vers les données téléchargeables
-        data_links = scraper.extract_links(soup, pattern="download")
-        logger.info("Liens de téléchargement trouvés: %d", len(data_links))
-
-        result = {
-            "source_url": RTE_ECO2MIX_URL,
-            "tables": tables,
-            "download_links": data_links,
-        }
-
-        json_path = saver.save_json(result, prefix="rte_eco2mix_scraping")
-        logger.info("=== Ingestion Scraping terminée ===")
-        return json_path
 
 
 def ingest_meteo(start_date: date = None, end_date: date = None) -> Path:
@@ -256,14 +226,6 @@ def main():
                 logger.info("Données Météo-Concept %s sauvegardées: %s", region.upper(), meteo_fr_path)
     except Exception as e:
         logger.error("Erreur ingestion Météo-Concept: %s", e)
-
-    # Ingestion par scraping (RTE web)
-    try:
-        scraping_path = ingest_scraping()
-        if scraping_path:
-            logger.info("Données scraping sauvegardées: %s", scraping_path)
-    except Exception as e:
-        logger.error("Erreur ingestion scraping: %s", e)
 
     logger.info("Pipeline d'ingestion terminé.")
 
