@@ -5,9 +5,7 @@
 name: Pipeline Data — Scheduled
 
 on:
-  schedule:
-    # Tous les jours à 6h00 UTC (7h00 heure Paris)
-    - cron: "0 6 * * *"
+  # Cron désactivé : orchestration assurée par Airflow sur EC2 (pipeline complet + PostgreSQL + gouvernance)
   workflow_dispatch:
     inputs:
       max_records:
