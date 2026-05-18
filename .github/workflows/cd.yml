@@ -83,6 +83,8 @@ jobs:
           docker run -d \
             --name energy-pipeline \
             --restart unless-stopped \
+            -e METEO_FRANCE_API_KEY=${{ secrets.METEO_FRANCE_API_KEY }} \
+            -e RTE_API_KEY=${{ secrets.RTE_API_KEY }} \
             -v /home/ubuntu/data:/app/data \
             -v /home/ubuntu/logs:/app/logs \
             -v /home/ubuntu/output:/app/output \

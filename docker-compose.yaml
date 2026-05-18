@@ -236,6 +236,9 @@ services:
       target: production
     container_name: energy-pipeline-ingestion
     command: ["python", "scripts/ingest.py"]
+    environment:
+      METEO_FRANCE_API_KEY: ${METEO_FRANCE_API_KEY:-}
+      RTE_API_KEY: ${RTE_API_KEY:-}
     volumes:
       - ./data/raw:/app/data/raw
       - ./logs:/app/logs
@@ -264,6 +267,9 @@ services:
       target: production
     container_name: energy-pipeline-full
     command: ["python", "scripts/run_full_pipeline.py"]
+    environment:
+      METEO_FRANCE_API_KEY: ${METEO_FRANCE_API_KEY:-}
+      RTE_API_KEY: ${RTE_API_KEY:-}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
