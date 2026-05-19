@@ -44,6 +44,12 @@ jobs:
 
           echo "=== Déploiement terminé ==="
 
+      - name: Copier dashboards statiques
+        run: |
+          cp ${{ github.workspace }}/output/dashboards/index.html /home/ubuntu/output/dashboards/
+          cp ${{ github.workspace }}/output/dashboards/dashboard_comparaison.html /home/ubuntu/output/dashboards/
+          cp ${{ github.workspace }}/output/dashboards/data_comparaison.json /home/ubuntu/output/dashboards/
+
       - name: Relancer le serveur HTTP
         run: |
           pkill -f "http.server 8080" 2>/dev/null || true
