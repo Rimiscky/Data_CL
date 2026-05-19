@@ -41,20 +41,20 @@ class TestETLPipeline:
             {
                 "date_heure": "2024-01-15T12:00:00+00:00",
                 "region": "Île-de-France",
-                "consommation_brute_electricite_mw": 15200,
-                "consommation_brute_gaz_mw": 8500,
+                "consommation_brute_electricite_rte": 15200,
+                "consommation_brute_gaz_totale": 8500,
             },
             {
                 "date_heure": "2024-01-15T11:00:00+00:00",
                 "region": "Île-de-France",
-                "consommation_brute_electricite_mw": 14800,
-                "consommation_brute_gaz_mw": 8300,
+                "consommation_brute_electricite_rte": 14800,
+                "consommation_brute_gaz_totale": 8300,
             },
             {
                 "date_heure": "2024-02-01T10:00:00+00:00",
                 "region": "Île-de-France",
-                "consommation_brute_electricite_mw": 16000,
-                "consommation_brute_gaz_mw": 9000,
+                "consommation_brute_electricite_rte": 16000,
+                "consommation_brute_gaz_totale": 9000,
             },
         ]
 

@@ -20,8 +20,8 @@ class TestExtractor:
 
         # Fichier JSON (liste de records)
         records = [
-            {"date_heure": "2024-01-15T12:00:00", "region": "Île-de-France", "consommation_brute_electricite_mw": 15200},
-            {"date_heure": "2024-01-15T11:00:00", "region": "Île-de-France", "consommation_brute_electricite_mw": 14800},
+            {"date_heure": "2024-01-15T12:00:00", "region": "Île-de-France", "consommation_brute_electricite_rte": 15200},
+            {"date_heure": "2024-01-15T11:00:00", "region": "Île-de-France", "consommation_brute_electricite_rte": 14800},
         ]
         json_path = lake_dir / "data_20240115.json"
         with open(json_path, "w", encoding="utf-8") as f:

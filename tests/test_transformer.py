@@ -22,8 +22,8 @@ class TestTransformer:
             ],
             "code_insee_region": ["11", "11", "11", "11"],
             "region": ["Île-de-France"] * 4,
-            "consommation_brute_electricite_mw": [15200, 14800, None, 16000],
-            "consommation_brute_gaz_mw": [8500, 8300, 8100, None],
+            "consommation_brute_electricite_rte": [15200, 14800, None, 16000],
+            "consommation_brute_gaz_totale": [8500, 8300, 8100, None],
         })
 
     @pytest.fixture
