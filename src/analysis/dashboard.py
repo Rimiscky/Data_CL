@@ -273,6 +273,59 @@ class DashboardBuilder:
         self.logger.info("Graphique anomalies créé (%d anomalies)", len(anomalies))
         return fig
 
+    def build_rte_mix(self, rte_records: list) -> go.Figure:
+        """Donut chart + barres du mix de génération RTE."""
+        LABELS_FR = {
+            "NUCLEAR": "Nucléaire", "WIND": "Éolien", "SOLAR": "Solaire",
+            "HYDRO": "Hydraulique", "THERMAL": "Thermique", "BIOENERGY": "Bioénergie",
+            "PUMPING": "Pompage", "EXCHANGE": "Échanges", "OTHER": "Autre",
+            "FOSSIL_GAS": "Gaz", "FOSSIL_HARD_COAL": "Charbon", "FOSSIL_OIL": "Fioul",
+            "WASTE": "Déchets",
+        }
+        COLORS_MIX = {
+            "Nucléaire": "#f39c12", "Éolien": "#74b9ff", "Solaire": "#ffd32a",
+            "Hydraulique": "#0652DD", "Thermique": "#e17055", "Bioénergie": "#00b894",
+            "Gaz": "#fd79a8", "Charbon": "#636e72", "Fioul": "#b2bec3",
+            "Pompage": "#a29bfe", "Déchets": "#55efc4", "Autre": "#95a5a6",
+            "Échanges": "#dfe6e9",
+        }
+
+        totals = {}
+        for record in rte_records:
+            ptype = record.get("production_type", "OTHER")
+            label = LABELS_FR.get(ptype, ptype.capitalize())
+            values = record.get("values", [])
+            total = sum(v.get("value", 0) or 0 for v in values)
+            if total > 0:
+                totals[label] = totals.get(label, 0) + total
+
+        if not totals:
+            return self._empty_figure("Données RTE indisponibles")
+
+        labels = list(totals.keys())
+        values = list(totals.values())
+        colors = [COLORS_MIX.get(lbl, "#95a5a6") for lbl in labels]
+
+        fig = go.Figure(data=go.Pie(
+            labels=labels,
+            values=values,
+            hole=0.45,
+            marker=dict(colors=colors),
+            textinfo="label+percent",
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} MW·h<br>%{percent}<extra></extra>",
+        ))
+
+        fig.update_layout(
+            title="Mix de génération électrique — France (RTE)",
+            template="plotly_white",
+            legend=dict(orientation="v", x=1.05),
+            annotations=[dict(text="Mix<br>RTE", x=0.5, y=0.5, font_size=14, showarrow=False)],
+        )
+
+        self._figures["rte_mix"] = fig
+        self.logger.info("Graphique mix RTE créé (%d filières)", len(totals))
+        return fig
+
     def build_all(self) -> dict[str, go.Figure]:
         """Construit tous les graphiques disponibles."""
         self.build_hourly_profile()
@@ -366,8 +419,9 @@ class DashboardBuilder:
 
         chart_layout = [
             ("chart-full", ["daily_consumption"]),
-            ("chart-row", ["hourly_profile", "heatmap"]),
+            ("chart-row", ["hourly_profile", "rte_mix"]),
             ("chart-row", ["weekday_comparison", "day_of_week"]),
+            ("chart-full", ["heatmap"]),
             ("chart-full", ["anomalies"]),
         ]
 
@@ -404,15 +458,7 @@ class DashboardBuilder:
 
         # Script Plotly
         html_parts.append("  <script>")
-
-        for key, fig in self._figures.items():
-            chart_id = f"chart_{list(self._figures.keys()).index(key)}"
-            html_parts.append(
-                f"    Plotly.newPlot('{chart_id}', "
-                f"{fig.to_json()}, "
-                f"{{responsive: true}});"
-            )
-
+        html_parts.extend(js_parts)
         html_parts.append("  </script>")
         html_parts.append("</body>")
         html_parts.append("</html>")

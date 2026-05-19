@@ -9,6 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import json  # noqa: E402
+
 import pandas as pd  # noqa: E402
 
 from src.analysis import DataAnalyzer, DashboardBuilder  # noqa: E402
@@ -18,13 +20,26 @@ from src.etl.merger import DataMerger  # noqa: E402
 from src.governance import DataQualityChecker, DataLineageTracker, DataCatalog  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 from config.settings import (  # noqa: E402
-    WAREHOUSE_DIR, BASE_DIR, RAW_METEO_DIR,
+    WAREHOUSE_DIR, BASE_DIR, RAW_METEO_DIR, RAW_RTE_DIR,
     CATALOG_DIR, LINEAGE_DIR, QUALITY_DIR,
 )
 
 logger = get_logger("dashboard")
 
 OUTPUT_DIR = BASE_DIR / "output" / "dashboards"
+
+
+def load_rte_data() -> list:
+    """Charge le fichier RTE le plus récent depuis le Data Lake."""
+    rte_files = sorted(RAW_RTE_DIR.glob("rte_generation_mix_*.json"))
+    if not rte_files:
+        logger.warning("Aucun fichier RTE trouvé dans %s", RAW_RTE_DIR)
+        return []
+    latest = rte_files[-1]
+    with open(latest, encoding="utf-8") as f:
+        records = json.load(f)
+    logger.info("Données RTE chargées: %d filières (%s)", len(records), latest.name)
+    return records
 
 
 def load_warehouse_data() -> pd.DataFrame:
@@ -152,6 +167,11 @@ def main():
     analyzer = DataAnalyzer(energy_df)
     dashboard = DashboardBuilder(analyzer, output_dir=OUTPUT_DIR)
     dashboard.build_all()
+
+    rte_records = load_rte_data()
+    if rte_records:
+        dashboard.build_rte_mix(rte_records)
+
     energy_html = dashboard.export_html()
     logger.info("Dashboard énergie: %s", energy_html)
 
