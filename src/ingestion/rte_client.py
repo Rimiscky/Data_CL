@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 from src.utils.logger import get_logger
-from config.settings import REQUEST_TIMEOUT, MAX_RETRIES, RETRY_DELAY
+from config.settings import REQUEST_TIMEOUT
 
 RTE_TOKEN_URL = "https://digital.iservices.rte-france.com/token/oauth/"
 RTE_API_BASE = "https://digital.iservices.rte-france.com/open_api/actual_generation/v1"
