@@ -1,5 +1,5 @@
 # ============================================================
-#  CD — Build & Push Docker Image
+#  CD — Build & Deploy directement sur EC2
 #  Déclenché sur merge dans main (après CI réussi)
 # ============================================================
 name: CD — Build & Deploy
@@ -11,78 +11,26 @@ on:
       - "**.md"
       - "docs/**"
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: rimiscky/data_cl
-
 jobs:
-  # ── Build et Push de l'image Docker ────────────────────
-  build-and-push:
-    name: Build & Push Docker Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+  deploy-ec2:
+    name: Build & Deploy sur AWS EC2
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build de l'image Docker
+        run: |
+          docker build --target production -t energy-pipeline:latest .
 
-      - name: Login au GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extraire les métadonnées Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build et Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: production
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ── Déploiement sur EC2 ────────────────────────────────
-  deploy-ec2:
-    name: Deploy sur AWS EC2
-    runs-on: self-hosted
-    needs: build-and-push
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Déployer sur EC2
+      - name: Déployer le conteneur
         run: |
           echo "=== Déploiement sur EC2 ==="
-          echo "Host: $(hostname)"
-          echo "User: $(whoami)"
-
-          # Pull de la dernière image
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-          # Arrêter l'ancien conteneur
           docker stop energy-pipeline || true
           docker rm energy-pipeline || true
 
-          # Lancer le nouveau conteneur
           docker run -d \
             --name energy-pipeline \
             --restart unless-stopped \
@@ -91,7 +39,7 @@ jobs:
             -v /home/ubuntu/data:/app/data \
             -v /home/ubuntu/logs:/app/logs \
             -v /home/ubuntu/output:/app/output \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            energy-pipeline:latest \
             python scripts/run_full_pipeline.py
 
           echo "=== Déploiement terminé ==="
