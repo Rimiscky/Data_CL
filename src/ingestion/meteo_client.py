@@ -79,12 +79,12 @@ class MeteoClient(APIClient):
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "hourly": ",".join(vars_list),
-            "timezone": "UTC",
+            "timezone": "UTC",  # forcé pour garantir la cohérence lors de la fusion avec les données énergie
         }
 
         try:
             data = self.get("archive", params=params)
-            n_hours = len(data.get("hourly", {}).get("time", []))
+            n_hours = len(data.get("hourly", {}).get("time", []))  # accès défensif : la réponse peut être partielle
             self.logger.info(
                 "Météo récupérée: %s → %s (%d heures, %d variables)",
                 start_date, end_date, n_hours, len(vars_list),
@@ -128,7 +128,7 @@ class MeteoClient(APIClient):
             return pd.DataFrame()
 
         df = pd.DataFrame(hourly)
-        df.rename(columns={"time": "datetime"}, inplace=True)
+        df.rename(columns={"time": "datetime"}, inplace=True)  # harmonise avec le nom de colonne commun au pipeline
         df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
 
         # Ajouter la région si elle est disponible

@@ -55,7 +55,7 @@ class ODREClient(APIClient):
         """
         endpoint = f"catalog/datasets/{self.dataset}/records"
         params = {
-            "where": f'region="{self.region}"',
+            "where": f'region="{self.region}"',  # syntaxe filtre OGC : la valeur string doit être entre guillemets
             "limit": limit or self.rows_limit,
             "offset": offset,
             "order_by": order_by,
@@ -95,7 +95,7 @@ class ODREClient(APIClient):
                 break
 
             all_records.extend(records)
-            offset += len(records)
+            offset += len(records)  # on avance du nombre réel retourné, pas du batch_size (dernière page peut être partielle)
             self.logger.info("Progression: %d/%d enregistrements", len(all_records), max_records)
 
         self.logger.info("Total récupéré: %d enregistrements", len(all_records))
@@ -125,5 +125,5 @@ class ODREClient(APIClient):
         if region_key not in REGION_ODRE_NAMES:
             raise ValueError(f"Région inconnue: {region_key}")
 
-        region_name = REGION_ODRE_NAMES[region_key]
+        region_name = REGION_ODRE_NAMES[region_key]  # traduit la clé interne ('idf') en nom exact attendu par l'API
         return cls(region=region_name)

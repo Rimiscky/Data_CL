@@ -40,6 +40,7 @@ class DataSaver:
         filepath = self._generate_filename(prefix, "json")
         try:
             with open(filepath, "w", encoding="utf-8") as f:
+                # default=str gère les types non-sérialisables (datetime, numpy) sans planter
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
             self.logger.info("JSON sauvegardé: %s", filepath)
             return filepath
@@ -63,8 +64,8 @@ class DataSaver:
 
         filepath = self._generate_filename(prefix, "csv")
         try:
-            fieldnames = list(data[0].keys())
-            with open(filepath, "w", encoding="utf-8", newline="") as f:
+            fieldnames = list(data[0].keys())  # colonnes inférées depuis le premier enregistrement
+            with open(filepath, "w", encoding="utf-8", newline="") as f:  # newline="" requis par csv pour éviter les lignes vides sur Windows
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(data)
@@ -91,7 +92,7 @@ class DataSaver:
             if fmt == "csv":
                 df.to_csv(filepath, index=False, encoding="utf-8")
             elif fmt == "json":
-                df.to_json(filepath, orient="records", force_ascii=False, indent=2)
+                df.to_json(filepath, orient="records", force_ascii=False, indent=2)  # orient="records" : une ligne = un objet JSON
             else:
                 raise ValueError(f"Format non supporté: {fmt}")
 

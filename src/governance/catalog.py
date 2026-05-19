@@ -50,9 +50,9 @@ class DataCatalog:
     def __init__(self, catalog_dir: Path):
         self.catalog_dir = Path(catalog_dir)
         self.catalog_dir.mkdir(parents=True, exist_ok=True)
-        self._entries: dict[str, DatasetEntry] = {}
+        self._entries: dict[str, DatasetEntry] = {}  # clé = nom unique du dataset
         self.logger = get_logger(self.__class__.__name__)
-        self._load_existing()
+        self._load_existing()  # réhydrate l'état depuis le fichier JSON si dispo
 
     def _load_existing(self):
         """Charge le catalogue existant si présent."""
@@ -63,9 +63,10 @@ class DataCatalog:
                     data = json.load(f)
                 for entry_data in data.get("datasets", []):
                     entry = DatasetEntry(**entry_data)
-                    self._entries[entry.name] = entry
+                    self._entries[entry.name] = entry  # l'entrée la plus récente gagne si doublon
                 self.logger.info("Catalogue chargé: %d datasets", len(self._entries))
             except Exception as e:
+                # catalogue corrompu ou incompatible : on repart d'un état vide plutôt que de planter
                 self.logger.warning("Erreur chargement catalogue: %s", e)
 
     def register(
@@ -105,6 +106,7 @@ class DataCatalog:
                     "dtype": str(df[col].dtype),
                     "nullable": bool(df[col].isna().any()),
                     "unique_count": int(df[col].nunique()),
+                    # .dropna() avant iloc[0] pour éviter NaN comme valeur d'exemple
                     "sample": str(df[col].dropna().iloc[0]) if not df[col].dropna().empty else None,
                 }
                 for col in df.columns
@@ -124,6 +126,7 @@ class DataCatalog:
         )
 
         if name in self._entries:
+            # mise à jour : on conserve la date de création d'origine
             entry.created_at = self._entries[name].created_at
 
         self._entries[name] = entry

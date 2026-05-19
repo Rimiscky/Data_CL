@@ -35,6 +35,7 @@ class QualityReport:
 
     @property
     def passed(self) -> bool:
+        # seules les règles "error" bloquent ; les "warning" et "info" sont tolérées
         errors = [r for r in self.rules if not r.passed and r.severity == "error"]
         return len(errors) == 0
 
@@ -84,13 +85,14 @@ class DataQualityChecker:
 
         report.rules.append(self.check_not_empty(df))
         report.rules.append(self.check_no_full_null_columns(df))
-        report.rules.append(self.check_completeness(df, threshold=0.5))
+        report.rules.append(self.check_completeness(df, threshold=0.5))  # seuil : 50% de remplissage min
         report.rules.append(self.check_no_duplicates(df))
         report.rules.append(self.check_date_continuity(df))
         report.rules.append(self.check_value_ranges(df))
-        report.rules.append(self.check_freshness(df, max_age_days=7))
+        report.rules.append(self.check_freshness(df, max_age_days=7))  # données fraîches = < 7 jours
 
         passed_count = sum(1 for r in report.rules if r.passed)
+        # score en pourcentage de règles passées (toutes confondues, indépendamment de la sévérité)
         report.score = (passed_count / len(report.rules)) * 100 if report.rules else 0
 
         self.logger.info(
@@ -173,6 +175,7 @@ class DataQualityChecker:
                 return rule
 
             median_diff = diffs.median()
+            # seuil : un écart > 3× la médiane est considéré comme un trou anormal
             gaps = diffs[diffs > median_diff * 3]
             rule.passed = len(gaps) == 0
             rule.details = (
@@ -198,6 +201,7 @@ class DataQualityChecker:
             series = df[col].dropna()
             if len(series) == 0:
                 continue
+            # consommation physiquement non négative : un négatif indique une erreur de mesure
             if (series < 0).any() and "consumption" in col.lower():
                 issues.append(f"{col}: valeurs négatives détectées")
 
@@ -221,7 +225,7 @@ class DataQualityChecker:
 
         try:
             max_date = pd.to_datetime(df["datetime"], utc=True).max()
-            now = pd.Timestamp.now(tz="UTC")
+            now = pd.Timestamp.now(tz="UTC")  # UTC pour éviter les décalages DST
             age = (now - max_date).days
             rule.passed = age <= max_age_days
             rule.details = f"Dernière donnée: {age} jours"

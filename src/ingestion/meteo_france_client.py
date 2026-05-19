@@ -62,7 +62,7 @@ class MeteoFranceClient(APIClient):
             "apikey": self.api_key,
             "lat": latitude,
             "lon": longitude,
-            "token": self.api_key,  # Certains endpoints peuvent nécessiter token
+            "token": self.api_key,  # doublon voulu : certains endpoints Météo-Concept acceptent l'un ou l'autre
         }
 
         # Note: Météo-Concept peut retourner des données différentes selon l'endpoint
@@ -102,7 +102,7 @@ class MeteoFranceClient(APIClient):
 
         try:
             data = self.fetch_weather(latitude, longitude, start_date, end_date)
-            records = data.get("history", []) or data.get("results", [])
+            records = data.get("history", []) or data.get("results", [])  # le nom du champ a changé entre versions de l'API
 
             if not records:
                 self.logger.warning("Aucune donnée météo pour région %s", region)
@@ -128,11 +128,11 @@ class MeteoFranceClient(APIClient):
 
             for old_col, new_col in column_mapping.items():
                 if old_col in df.columns and new_col not in df.columns:
-                    df[new_col] = df[old_col]
+                    df[new_col] = df[old_col]  # garde la colonne source en cas de mapping partiel
 
             # Convertir datetime en format standard
             if "datetime" in df.columns:
-                df["datetime"] = pd.to_datetime(df["datetime"], utc=True, errors="coerce")
+                df["datetime"] = pd.to_datetime(df["datetime"], utc=True, errors="coerce")  # errors="coerce" : dates invalides → NaT sans lever d'exception
 
             self.logger.info(
                 "DataFrame météo région %s: %d lignes", region, len(df)

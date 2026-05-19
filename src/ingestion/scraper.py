@@ -23,6 +23,7 @@ class WebScraper:
         self.max_retries = max_retries
         self.session = requests.Session()
         self.session.headers.update({
+            # User-Agent identifie le bot poliment ; évite les 403 sur les sites qui bloquent les requêtes sans UA
             "User-Agent": (
                 "Mozilla/5.0 (compatible; DataPipeline/1.0; "
                 "+https://github.com/projet-data)"
@@ -47,7 +48,7 @@ class WebScraper:
                 )
                 response = self.session.get(url, timeout=self.timeout)
                 response.raise_for_status()
-                return BeautifulSoup(response.text, "lxml")
+                return BeautifulSoup(response.text, "lxml")  # lxml : plus rapide et plus tolérant que html.parser sur le HTML malformé
 
             except requests.exceptions.RequestException as e:
                 self.logger.warning("Erreur scraping tentative %d: %s", attempt, e)
@@ -75,7 +76,7 @@ class WebScraper:
                     cell.get_text(strip=True)
                     for cell in row.find_all(["th", "td"])
                 ]
-                if cells:
+                if cells:  # ignore les lignes vides (ex: séparateurs HTML)
                     rows.append(cells)
             if rows:
                 tables.append(rows)
@@ -96,7 +97,7 @@ class WebScraper:
         """
         links = []
         for a_tag in soup.find_all("a", href=True):
-            href = a_tag["href"]
+            href = a_tag["href"]  # accès direct garanti : find_all(href=True) filtre les balises sans href
             if pattern is None or pattern in href:
                 links.append({
                     "text": a_tag.get_text(strip=True),
@@ -113,4 +114,4 @@ class WebScraper:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        return False
+        return False  # ne supprime pas les exceptions levées dans le bloc with

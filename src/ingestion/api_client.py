@@ -20,11 +20,11 @@ class APIClient:
         max_retries: int = 3,
         retry_delay: int = 2,
     ):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip("/")  # évite les doubles slashes lors de la construction d'URL
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.session = requests.Session()
+        self.session = requests.Session()  # Session réutilise les connexions TCP entre les requêtes
         self.logger = get_logger(self.__class__.__name__)
 
     def _build_url(self, endpoint: str) -> str:
@@ -58,14 +58,14 @@ class APIClient:
                 response = self.session.get(
                     url, params=params, timeout=self.timeout
                 )
-                response.raise_for_status()
+                response.raise_for_status()  # lève HTTPError pour 4xx/5xx avant de parser le JSON
                 return response.json()
 
             except requests.exceptions.HTTPError as e:
                 self.logger.warning("Erreur HTTP %s: %s", response.status_code, e)
                 last_exception = e
                 if response.status_code < 500:
-                    raise
+                    raise  # erreurs 4xx (client) : pas la peine de retenter
 
             except requests.exceptions.ConnectionError as e:
                 self.logger.warning("Erreur de connexion: %s", e)
@@ -76,7 +76,7 @@ class APIClient:
                 last_exception = e
 
             if attempt < self.max_retries:
-                wait = self.retry_delay * attempt
+                wait = self.retry_delay * attempt  # délai croissant à chaque tentative
                 self.logger.info("Attente de %ds avant retry...", wait)
                 time.sleep(wait)
 
@@ -91,4 +91,4 @@ class APIClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        return False
+        return False  # ne supprime pas les exceptions levées dans le bloc with

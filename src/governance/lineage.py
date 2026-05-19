@@ -46,7 +46,7 @@ class DataLineageTracker:
     def __init__(self, pipeline_name: str):
         self.pipeline_name = pipeline_name
         self._steps: list[LineageStep] = []
-        self._start_time = datetime.now()
+        self._start_time = datetime.now()  # capturé ici pour calculer la durée totale dans get_lineage
         self.logger = get_logger(self.__class__.__name__)
 
     def add_step(
@@ -89,7 +89,7 @@ class DataLineageTracker:
             columns_removed=columns_removed or [],
             metadata=metadata or {},
         )
-        self._steps.append(step)
+        self._steps.append(step)  # on accumule toutes les étapes, pas de dédoublonnage
         self.logger.info(
             "Lignage [%s]: %s → %s (%d→%d lignes)",
             step_name, source, destination, rows_in, rows_out,
@@ -111,6 +111,7 @@ class DataLineageTracker:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # timestamp dans le nom pour ne pas écraser les runs précédents
         filepath = output_dir / f"lineage_{self.pipeline_name}_{timestamp}.json"
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(self.get_lineage(), f, ensure_ascii=False, indent=2, default=str)
@@ -119,4 +120,4 @@ class DataLineageTracker:
 
     @property
     def steps(self) -> list[LineageStep]:
-        return list(self._steps)
+        return list(self._steps)  # copie superficielle : l'appelant ne peut pas modifier _steps
