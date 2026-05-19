@@ -3,7 +3,7 @@ Client pour l'API RTE OAuth2 (digital.iservices.rte-france.com).
 Récupère les données de génération réelle par filière (nucléaire, éolien, solaire, etc.).
 """
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
@@ -69,14 +69,18 @@ class RTEClient:
             self.logger.warning("RTE_API_KEY non configuré, ingestion RTE ignorée")
             return []
 
-        def _fmt(dt: datetime) -> str:
+        def _midnight(d: "date") -> str:
+            dt = datetime(d.year, d.month, d.day, tzinfo=PARIS_TZ)
             s = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
             return s[:-2] + ":" + s[-2:]
 
-        if end_date is None:
-            end_date = _fmt(datetime.now(PARIS_TZ))
-        if start_date is None:
-            start_date = _fmt(datetime.now(PARIS_TZ) - timedelta(days=1))
+        if end_date is None or start_date is None:
+            today = datetime.now(PARIS_TZ).date()
+            yesterday = today - timedelta(days=1)
+            if start_date is None:
+                start_date = _midnight(yesterday)
+            if end_date is None:
+                end_date = _midnight(today)
 
         try:
             token = self._get_access_token()
