@@ -95,7 +95,8 @@ class ODREClient(APIClient):
                 break
 
             all_records.extend(records)
-            offset += len(records)  # on avance du nombre réel retourné, pas du batch_size (dernière page peut être partielle)
+            # on avance du nombre réel retourné, pas du batch_size (dernière page peut être partielle)
+            offset += len(records)
             self.logger.info("Progression: %d/%d enregistrements", len(all_records), max_records)
 
         self.logger.info("Total récupéré: %d enregistrements", len(all_records))

@@ -27,13 +27,12 @@ jobs:
 
       - name: Déployer le conteneur
         run: |
-          echo "=== Déploiement sur EC2 ==="
+          echo "=== Lancement du pipeline ==="
           docker stop energy-pipeline || true
           docker rm energy-pipeline || true
 
-          docker run -d \
+          docker run \
             --name energy-pipeline \
-            --restart unless-stopped \
             -e RTE_API_KEY=${{ secrets.RTE_API_KEY }} \
             -e AIRFLOW_SMTP_PASSWORD=${{ secrets.AIRFLOW_SMTP_PASSWORD }} \
             -v /home/ubuntu/data:/app/data \
@@ -42,7 +41,7 @@ jobs:
             energy-pipeline:latest \
             python scripts/run_full_pipeline.py
 
-          echo "=== Déploiement terminé ==="
+          echo "=== Pipeline terminé ==="
 
       - name: Copier dashboards statiques
         run: |

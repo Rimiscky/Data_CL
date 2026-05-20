@@ -48,7 +48,8 @@ class WebScraper:
                 )
                 response = self.session.get(url, timeout=self.timeout)
                 response.raise_for_status()
-                return BeautifulSoup(response.text, "lxml")  # lxml : plus rapide et plus tolérant que html.parser sur le HTML malformé
+                # lxml : plus rapide et plus tolérant que html.parser sur le HTML malformé
+                return BeautifulSoup(response.text, "lxml")
 
             except requests.exceptions.RequestException as e:
                 self.logger.warning("Erreur scraping tentative %d: %s", attempt, e)

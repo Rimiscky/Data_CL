@@ -32,24 +32,49 @@ LEFT JOIN energy.weather w ON c.datetime = w.datetime
 """
 
 
-def _drop_view(engine):
-    """Supprime la vue dépendante avant un REPLACE de table."""
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        conn.execute(text("DROP VIEW IF EXISTS energy.consumption_weather CASCADE"))
-        conn.commit()
-
-
 def _recreate_view(engine):
-    """Recrée la vue croisée après rechargement des tables."""
+    """Crée ou remplace la vue croisée."""
     from sqlalchemy import text
     with engine.connect() as conn:
         conn.execute(text(VIEW_SQL))
         conn.commit()
 
 
+def _append_new_rows(df: pd.DataFrame, table: str, key_cols: list, engine) -> int:
+    """Insère uniquement les lignes absentes de la table (déduplication sur key_cols)."""
+    from sqlalchemy import inspect as sa_inspect
+
+    if not sa_inspect(engine).has_table(table, schema="energy"):
+        df.to_sql(table, engine, schema="energy", if_exists="replace",
+                  index=False, method="multi", chunksize=500)
+        return len(df)
+
+    existing = pd.read_sql(f"SELECT {', '.join(key_cols)} FROM energy.{table}", engine)
+
+    def _norm(series: pd.Series) -> pd.Series:
+        try:
+            return pd.to_datetime(series, utc=True).astype("int64")
+        except (TypeError, ValueError):
+            return series.astype(str)
+
+    df_keys = pd.DataFrame({c: _norm(df[c]) for c in key_cols})
+    ex_keys = pd.DataFrame({c: _norm(existing[c]) for c in key_cols})
+
+    existing_set = set(ex_keys.itertuples(index=False, name=None))
+    mask = ~df_keys.apply(tuple, axis=1).isin(existing_set)
+
+    new_rows = df[mask]
+    if new_rows.empty:
+        logger.info("Table %s: aucune nouvelle ligne à insérer", table)
+        return 0
+
+    new_rows.to_sql(table, engine, schema="energy", if_exists="append",
+                    index=False, method="multi", chunksize=500)
+    return len(new_rows)
+
+
 def load_energy_to_db():
-    """Charge les données énergie dans PostgreSQL."""
+    """Charge les données énergie dans PostgreSQL (append, dédupliqué sur datetime + region_name)."""
     try:
         from sqlalchemy import create_engine
 
@@ -63,19 +88,12 @@ def load_energy_to_db():
         df = pd.read_csv(latest_csv)
         df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
 
-        if "date" not in df.columns and "datetime" in df.columns:
+        if "date" not in df.columns:
             df["date"] = df["datetime"].dt.date
 
-        df.to_sql(
-            "consumption",
-            engine,
-            schema="energy",
-            if_exists="replace",
-            index=False,
-            method="multi",
-            chunksize=500,
-        )
-        logger.info("Energie chargée en DB: %d lignes", len(df))
+        key_cols = ["datetime", "region_name"] if "region_name" in df.columns else ["datetime"]
+        inserted = _append_new_rows(df, "consumption", key_cols, engine)
+        logger.info("Energie chargée en DB: %d nouvelles lignes (sur %d)", inserted, len(df))
 
     except ImportError:
         logger.error("sqlalchemy non installé — pip install sqlalchemy psycopg2-binary")
@@ -85,13 +103,13 @@ def load_energy_to_db():
 
 
 def load_weather_to_db():
-    """Charge les données météo dans PostgreSQL."""
+    """Charge les données météo dans PostgreSQL (append, dédupliqué sur datetime + region)."""
     try:
         from sqlalchemy import create_engine
 
         engine = create_engine(DB_URL)
 
-        meteo_files = sorted(RAW_METEO_DIR.glob("meteo_idf_*.csv"))
+        meteo_files = sorted(RAW_METEO_DIR.glob("meteo_regions_*.csv"))
         if not meteo_files:
             logger.warning("Aucun fichier météo trouvé dans %s", RAW_METEO_DIR)
             return
@@ -100,16 +118,9 @@ def load_weather_to_db():
         if "datetime" in df.columns:
             df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
 
-        df.to_sql(
-            "weather",
-            engine,
-            schema="energy",
-            if_exists="replace",
-            index=False,
-            method="multi",
-            chunksize=500,
-        )
-        logger.info("Météo chargée en DB: %d lignes", len(df))
+        key_cols = ["datetime", "region"] if "region" in df.columns else ["datetime"]
+        inserted = _append_new_rows(df, "weather", key_cols, engine)
+        logger.info("Météo chargée en DB: %d nouvelles lignes (sur %d)", inserted, len(df))
 
     except ImportError:
         logger.error("sqlalchemy non installé — pip install sqlalchemy psycopg2-binary")
@@ -161,19 +172,13 @@ def main():
     logger.info("  Chargement données → PostgreSQL (energy_db)")
     logger.info("=" * 50)
 
-    from sqlalchemy import create_engine
-    engine = create_engine(DB_URL)
-
-    # Supprimer la vue avant de remplacer les tables
-    _drop_view(engine)
-
     load_energy_to_db()
     load_weather_to_db()
     load_quality_to_db()
 
-    # Recréer la vue croisée
-    _recreate_view(engine)
-    logger.info("Vue energy.consumption_weather recréée")
+    from sqlalchemy import create_engine
+    _recreate_view(create_engine(DB_URL))
+    logger.info("Vue energy.consumption_weather mise à jour")
 
     logger.info("Chargement terminé")
 

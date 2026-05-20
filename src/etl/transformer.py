@@ -91,14 +91,7 @@ class Transformer:
         fill_value: Optional[float] = None,
         subset: Optional[list[str]] = None,
     ) -> "Transformer":
-        """
-        Gère les valeurs manquantes.
-
-        Args:
-            strategy: 'drop', 'fill_zero', 'fill_mean', 'fill_median', 'fill_value'.
-            fill_value: Valeur de remplacement si strategy='fill_value'.
-            subset: Colonnes ciblées (None = toutes).
-        """
+        """strategy: 'drop' | 'fill_zero' | 'fill_mean' | 'fill_median' | 'fill_value'."""
         before = len(self.df)
         missing_before = self.df.isna().sum().sum()
 

@@ -102,7 +102,8 @@ class MeteoFranceClient(APIClient):
 
         try:
             data = self.fetch_weather(latitude, longitude, start_date, end_date)
-            records = data.get("history", []) or data.get("results", [])  # le nom du champ a changé entre versions de l'API
+            # le nom du champ a changé entre versions de l'API
+            records = data.get("history", []) or data.get("results", [])
 
             if not records:
                 self.logger.warning("Aucune donnée météo pour région %s", region)
@@ -132,7 +133,8 @@ class MeteoFranceClient(APIClient):
 
             # Convertir datetime en format standard
             if "datetime" in df.columns:
-                df["datetime"] = pd.to_datetime(df["datetime"], utc=True, errors="coerce")  # errors="coerce" : dates invalides → NaT sans lever d'exception
+                # errors="coerce" : dates invalides → NaT sans lever d'exception
+                df["datetime"] = pd.to_datetime(df["datetime"], utc=True, errors="coerce")
 
             self.logger.info(
                 "DataFrame météo région %s: %d lignes", region, len(df)

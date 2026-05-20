@@ -4,19 +4,66 @@ DAG Airflow — Pipeline orchestré multi-sources et multi-régions.
 Orchestration : Ingestion multi-sources → ETL → Chargement DB → Dashboard → Gouvernance
 Sources : ODRE (énergie), RTE (génération), Open-Meteo. Planification : tous les jours à 6h UTC
 """
-from datetime import datetime, timedelta
+import sys
+from datetime import timedelta
+from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.dates import days_ago
 
-# Régions configurées (miroir de config/settings.py REGIONS)
-REGIONS = ["idf", "provence", "bretagne", "nouvelle-aquitaine"]
+# Remonte à la racine du projet pour accéder à config.settings
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+try:
+    from config.settings import REGIONS
+except ImportError:
+    REGIONS = ["idf", "provence", "bretagne", "nouvelle-aquitaine"]
 
 
 ALERT_EMAIL = "rimiscky@gmail.com"
+AIRFLOW_ROOT = "/opt/airflow"
 
+
+# ──────────────────────────────────────────────────────────────
+# Callables Python pour PythonOperator
+# Les imports sont à l'intérieur des fonctions : chaque worker
+# Airflow charge ses propres modules sans conflit de chemin.
+# ──────────────────────────────────────────────────────────────
+
+def _ingest_odre_region(region: str) -> None:
+    import sys
+    sys.path.insert(0, AIRFLOW_ROOT)
+    from src.ingestion.odre_client import ODREClient
+    from src.ingestion.data_saver import DataSaver
+    from config.settings import RAW_API_DIR
+
+    saver = DataSaver(RAW_API_DIR)
+    with ODREClient.for_region(region) as client:
+        data = client.fetch_all_consumption(max_records=500)
+    saver.save_json(data, prefix=f"odre_consommation_{region}")
+    saver.save_csv(data, prefix=f"odre_consommation_{region}")
+    print(f"Ingestion {region.upper()}: {len(data)} enregistrements")
+
+
+def _ingest_meteo() -> None:
+    import sys
+    sys.path.insert(0, AIRFLOW_ROOT)
+    from scripts.ingest import ingest_meteo
+    ingest_meteo()
+
+
+def _ingest_rte() -> None:
+    import sys
+    sys.path.insert(0, AIRFLOW_ROOT)
+    from scripts.ingest import ingest_rte_realtime
+    ingest_rte_realtime(max_records=500)
+
+
+# ──────────────────────────────────────────────────────────────
+# DAG
+# ──────────────────────────────────────────────────────────────
 
 default_args = {
     "owner": "data-team",
@@ -45,51 +92,26 @@ with DAG(
     # ──────────────────────────────────────────────────────
     with TaskGroup("ingest_energy_group") as ingest_energy_group:
         for region in REGIONS:
-            BashOperator(
+            PythonOperator(
                 task_id=f"ingest_odre_{region}",
-                bash_command=(
-                    "cd /opt/airflow && python -c \""
-                    "import sys; sys.path.insert(0, '.'); "
-                    "from src.ingestion.odre_client import ODREClient; "
-                    "from src.ingestion.data_saver import DataSaver; "
-                    "from config.settings import RAW_API_DIR; "
-                    "saver = DataSaver(RAW_API_DIR); "
-                    f"client = ODREClient.for_region('{region}'); "
-                    "data = client.fetch_all_consumption(max_records=500); "
-                    f"saver.save_json(data, prefix='odre_consommation_{region}'); "
-                    f"saver.save_csv(data, prefix='odre_consommation_{region}'); "
-                    "client.close(); "
-                    f"print(f'Ingestion {region.upper()}: {{len(data)}} enregistrements')"
-                    "\""
-                ),
+                python_callable=_ingest_odre_region,
+                op_kwargs={"region": region},
             )
 
     # ──────────────────────────────────────────────────────
     # Ingestion : Météo Open-Meteo - Multi-régions
     # ──────────────────────────────────────────────────────
-    ingest_meteo = BashOperator(
+    ingest_meteo = PythonOperator(
         task_id="ingest_meteo_open_meteo",
-        bash_command=(
-            "cd /opt/airflow && python -c \""
-            "import sys; sys.path.insert(0, '.'); "
-            "from scripts.ingest import ingest_meteo; "
-            "ingest_meteo()"
-            "\""
-        ),
+        python_callable=_ingest_meteo,
     )
 
     # ──────────────────────────────────────────────────────
     # Ingestion : RTE - Génération d'électricité
     # ──────────────────────────────────────────────────────
-    ingest_rte = BashOperator(
+    ingest_rte = PythonOperator(
         task_id="ingest_rte_generation",
-        bash_command=(
-            "cd /opt/airflow && python -c \""
-            "import sys; sys.path.insert(0, '.'); "
-            "from scripts.ingest import ingest_rte_realtime; "
-            "ingest_rte_realtime(max_records=500)"
-            "\""
-        ),
+        python_callable=_ingest_rte,
     )
 
     # ──────────────────────────────────────────────────────
@@ -97,7 +119,7 @@ with DAG(
     # ──────────────────────────────────────────────────────
     run_etl = BashOperator(
         task_id="run_etl",
-        bash_command="cd /opt/airflow && python scripts/run_etl.py",
+        bash_command=f"cd {AIRFLOW_ROOT} && python scripts/run_etl.py",
     )
 
     # ──────────────────────────────────────────────────────
@@ -105,7 +127,7 @@ with DAG(
     # ──────────────────────────────────────────────────────
     load_to_postgres = BashOperator(
         task_id="load_to_postgres",
-        bash_command="cd /opt/airflow && python scripts/load_to_db.py",
+        bash_command=f"cd {AIRFLOW_ROOT} && python scripts/load_to_db.py",
     )
 
     # ──────────────────────────────────────────────────────
@@ -113,7 +135,7 @@ with DAG(
     # ──────────────────────────────────────────────────────
     generate_dashboard = BashOperator(
         task_id="generate_dashboard",
-        bash_command="cd /opt/airflow && python scripts/run_dashboard.py",
+        bash_command=f"cd {AIRFLOW_ROOT} && python scripts/run_dashboard.py",
     )
 
     # ──────────────────────────────────────────────────────
@@ -121,7 +143,7 @@ with DAG(
     # ──────────────────────────────────────────────────────
     run_governance = BashOperator(
         task_id="run_governance",
-        bash_command="cd /opt/airflow && python scripts/run_governance.py",
+        bash_command=f"cd {AIRFLOW_ROOT} && python scripts/run_governance.py",
     )
 
     # ──────────────────────────────────────────────────────
@@ -131,7 +153,7 @@ with DAG(
         task_id="publish_dashboards",
         bash_command=(
             "mkdir -p /home/ubuntu/www/dashboards && "
-            "cp -r /opt/airflow/output/dashboards/* /home/ubuntu/www/dashboards/"
+            f"cp -r {AIRFLOW_ROOT}/output/dashboards/* /home/ubuntu/www/dashboards/"
         ),
     )
 
@@ -141,9 +163,9 @@ with DAG(
     cleanup_old_files = BashOperator(
         task_id="cleanup_old_files",
         bash_command=(
-            "find /opt/airflow/data/raw -type f -mtime +7 -delete && "
-            "find /opt/airflow/data/warehouse -type f -mtime +30 -delete && "
-            "find /opt/airflow/logs -type f -mtime +14 -delete && "
+            f"find {AIRFLOW_ROOT}/data/raw -type f -mtime +7 -delete && "
+            f"find {AIRFLOW_ROOT}/data/warehouse -type f -mtime +30 -delete && "
+            f"find {AIRFLOW_ROOT}/logs -type f -mtime +14 -delete && "
             "echo 'Nettoyage terminé'"
         ),
     )

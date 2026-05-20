@@ -145,15 +145,7 @@ def main():
     logger.info("  Énergie + Météo + RTE — France")
     logger.info("========================================")
 
-    # Ingestion API ODRE (par défaut IDF)
-    try:
-        api_path = ingest_api(region="idf", max_records=500)
-        if api_path:
-            logger.info("Données API IDF sauvegardées: %s", api_path)
-    except Exception as e:
-        logger.error("Erreur ingestion API: %s", e)
-
-    # Ingestion multi-régions (optionnel)
+    # Ingestion API ODRE — toutes les régions (IDF incluse)
     try:
         region_paths = ingest_all_regions(max_records=500)
         if region_paths:
