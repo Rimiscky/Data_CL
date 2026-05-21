@@ -15,7 +15,7 @@ class APIClient:
 
     def __init__(
         self,
-        base_url: str,
+        base_url: str, #typage primitif
         timeout: int = 30,
         max_retries: int = 3,
         retry_delay: int = 2,
@@ -32,7 +32,7 @@ class APIClient:
         return f"{self.base_url}/{endpoint.lstrip('/')}"
 
     def get(
-        self, endpoint: str, params: Optional[dict] = None
+        self, endpoint: str, params: Optional[dict] = None 
     ) -> dict[str, Any]:
         """
         Effectue une requête GET avec retry automatique.
