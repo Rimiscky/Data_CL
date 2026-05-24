@@ -256,7 +256,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Météo × Énergie",
     "Mix de production",
     "Gouvernance",
-    "Prévisions J+7",
+    "Prévisions",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -795,18 +795,26 @@ with tab5:
     )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 6 — Prévisions Prophet J+7
+# TAB 6 — Prévisions Prophet
 # ══════════════════════════════════════════════════════════════════════════════
 
 with tab6:
-    st.markdown("### Prévisions de consommation — J+7")
-    st.caption(
-        f"Modèle Prophet entraîné sur l'historique complet de {REGION_LABELS[selected_region]}. "
-        "Intervalle de confiance à 95%."
-    )
+    # ── Sélecteur d'horizon ───────────────────────────────────────────────────
+    ctrl_col, _, info_col = st.columns([1, 2, 1])
+    with ctrl_col:
+        horizon_days = st.select_slider(
+            "Horizon de prévision",
+            options=[3, 7, 14],
+            value=7,
+            format_func=lambda x: f"J+{x}",
+        )
+    with info_col:
+        st.caption(f"IC 95% · Prophet · {REGION_LABELS[selected_region]}")
 
-    with st.spinner("Entraînement du modèle Prophet en cours… (30–60 s la première fois)"):
-        forecast_df = run_prophet_forecast(selected_region, horizon_days=7)
+    st.markdown(f"### Prévisions de consommation — J+{horizon_days}")
+
+    with st.spinner(f"Calcul des prévisions J+{horizon_days}… (30–60 s la première fois)"):
+        forecast_df = run_prophet_forecast(selected_region, horizon_days=horizon_days)
 
     if forecast_df is None:
         st.error(
@@ -836,10 +844,10 @@ with tab6:
         st.markdown("---")
 
         # ── Graphique principal : historique + prévisions ────────────────────
-        st.markdown("**Historique récent + prévisions J+7**")
+        st.markdown(f"**Historique récent + prévisions J+{horizon_days}**")
 
-        # Garder les 14 derniers jours d'historique pour contexte
-        hist_cutoff = df_full["datetime"].max() - pd.Timedelta(days=14)
+        # Historique = 2× l'horizon pour avoir du contexte proportionnel
+        hist_cutoff = df_full["datetime"].max() - pd.Timedelta(days=horizon_days * 2)
         df_hist = df_full[df_full["datetime"] >= hist_cutoff].copy() if elec_col else pd.DataFrame()
 
         fig = go.Figure()
@@ -923,7 +931,7 @@ with tab6:
         st.dataframe(daily_fc_display, use_container_width=True, hide_index=True)
 
         # ── Profil horaire moyen prévu ────────────────────────────────────────
-        st.markdown("**Profil horaire moyen prévu (sur les 7 jours)**")
+        st.markdown(f"**Profil horaire moyen prévu (sur {horizon_days} jours)**")
 
         forecast_df["hour_fc"] = pd.to_datetime(forecast_df["datetime"]).dt.hour
         hourly_fc = forecast_df.groupby("hour_fc").agg(
@@ -963,6 +971,6 @@ with tab6:
         st.plotly_chart(fig2, use_container_width=True)
 
         st.caption(
-            "Modèle Prophet avec saisonnalités journalière, hebdomadaire et annuelle. "
+            f"Modèle Prophet J+{horizon_days} · saisonnalités journalière, hebdomadaire et annuelle. "
             "Les prévisions sont indicatives et dépendent de la quantité d'historique disponible."
         )
