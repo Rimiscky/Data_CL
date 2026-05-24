@@ -94,12 +94,31 @@ def load_merged_df(region: str) -> Optional[pd.DataFrame]:
     if energy_df is None or energy_df.empty:
         return None
 
+    # 1. Fichier dédié à la région (ancien format : meteo_{region}_*.csv)
     meteo_files = sorted(RAW_METEO_DIR.glob(f"meteo_{region}_*.csv"), reverse=True)
-    if not meteo_files:
+    if meteo_files:
+        try:
+            weather_df = pd.read_csv(meteo_files[0])
+        except Exception:
+            weather_df = None
+    else:
+        weather_df = None
+
+    # 2. Fichier combiné toutes régions (nouveau format : meteo_regions_*.csv)
+    if weather_df is None or weather_df.empty:
+        combined_files = sorted(RAW_METEO_DIR.glob("meteo_regions_*.csv"), reverse=True)
+        if not combined_files:
+            return None
+        try:
+            df_all = pd.read_csv(combined_files[0])
+            weather_df = df_all[df_all["region"] == region].drop(columns=["region"], errors="ignore").copy()
+        except Exception:
+            return None
+
+    if weather_df is None or weather_df.empty:
         return None
 
     try:
-        weather_df = pd.read_csv(meteo_files[0])
         weather_df["datetime"] = pd.to_datetime(weather_df["datetime"], utc=True)
     except Exception:
         return None
@@ -660,7 +679,7 @@ with tab3:
 
             sys.path.insert(0, str(BASE_DIR))
             from src.analysis.cross_dashboard import CrossDashboardBuilder
-            builder = CrossDashboardBuilder(df_mx)
+            builder = CrossDashboardBuilder(df_mx, region_label=REGION_LABELS[selected_region])
 
             # ── Graphique 1 : double-axe énergie + température ───────────────
             st.markdown("**Consommation électrique vs Température**")

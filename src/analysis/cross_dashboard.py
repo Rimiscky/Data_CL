@@ -30,15 +30,18 @@ class CrossDashboardBuilder:
         self,
         df: pd.DataFrame,
         output_dir: Optional[Path] = None,
+        region_label: str = "Île-de-France",
     ):
         """
         Args:
             df: DataFrame fusionné (énergie + météo).
             output_dir: Répertoire de sortie.
+            region_label: Nom lisible de la région pour les titres.
         """
         if df is None or df.empty:
             raise ValueError("DataFrame ne peut pas être vide")
         self._df = df.copy()
+        self.region_label = region_label
         self.output_dir = Path(output_dir) if output_dir else Path("output/dashboards")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.logger = get_logger(self.__class__.__name__)
@@ -99,7 +102,7 @@ class CrossDashboardBuilder:
         )
 
         fig.update_layout(
-            title="Consommation électrique vs Température — Île-de-France",
+            title="Consommation électrique vs Température — {self.region_label}",
             template="plotly_white",
             hovermode="x unified",
             xaxis=dict(
@@ -160,7 +163,7 @@ class CrossDashboardBuilder:
         ))
 
         fig.update_layout(
-            title="Corrélation Température → Consommation — Île-de-France",
+            title="Corrélation Température → Consommation — {self.region_label}",
             xaxis_title="Température (°C)",
             yaxis_title="Consommation (MW)",
             template="plotly_white",
