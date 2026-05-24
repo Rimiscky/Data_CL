@@ -84,6 +84,37 @@ def load_rte_raw() -> Optional[list]:
         return None
 
 
+RAW_METEO_DIR = BASE_DIR / "data" / "raw" / "meteo"
+
+
+@st.cache_data(ttl=1800)
+def load_merged_df(region: str) -> Optional[pd.DataFrame]:
+    """Fusionne énergie + météo pour la région donnée."""
+    energy_df = load_warehouse(region)
+    if energy_df is None or energy_df.empty:
+        return None
+
+    meteo_files = sorted(RAW_METEO_DIR.glob(f"meteo_{region}_*.csv"), reverse=True)
+    if not meteo_files:
+        return None
+
+    try:
+        weather_df = pd.read_csv(meteo_files[0])
+        weather_df["datetime"] = pd.to_datetime(weather_df["datetime"], utc=True)
+    except Exception:
+        return None
+
+    sys.path.insert(0, str(BASE_DIR))
+    from src.etl.merger import DataMerger
+    merger = DataMerger()
+    try:
+        merged = merger.merge_energy_weather(energy_df, weather_df)
+        merged = merger.add_weather_categories(merged)
+        return merged
+    except Exception:
+        return None
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def run_prophet_forecast(region: str, horizon_days: int = 7) -> Optional[pd.DataFrame]:
     """Entraîne Prophet sur toutes les données disponibles et retourne les prévisions."""
@@ -219,9 +250,10 @@ if df.empty:
 
 # ── Onglets ────────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Vue d'ensemble",
     "Consommation",
+    "Météo × Énergie",
     "Mix de production",
     "Gouvernance",
     "Prévisions J+7",
@@ -481,10 +513,93 @@ with tab2:
             st.caption(f"{len(anomalies)} anomalie(s) détectée(s) sur {len(df)} enregistrements.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — Mix de production RTE
+# TAB 3 — Météo × Énergie
 # ══════════════════════════════════════════════════════════════════════════════
 
 with tab3:
+    st.markdown("### Météo × Énergie")
+    st.caption(f"Corrélation entre conditions météorologiques et consommation — {REGION_LABELS[selected_region]}")
+
+    df_merged = load_merged_df(selected_region)
+
+    if df_merged is None:
+        st.info(
+            "Données météo non disponibles pour cette région. "
+            "Lancez l'ingestion : `python scripts/ingest.py`"
+        )
+    else:
+        # Filtrer par période
+        df_mx = filter_by_period(df_merged, date_start, date_end)
+        if df_mx.empty:
+            st.warning("Aucune donnée fusionnée sur la période sélectionnée.")
+        else:
+            elec_mx = detect_elec_col(df_mx)
+
+            # ── KPIs météo ──────────────────────────────────────────────────
+            k1, k2, k3, k4 = st.columns(4)
+            if "temperature_2m" in df_mx.columns:
+                k1.metric("Température moyenne", f"{df_mx['temperature_2m'].mean():.1f} °C")
+                k2.metric("Temp. min / max", f"{df_mx['temperature_2m'].min():.1f} / {df_mx['temperature_2m'].max():.1f} °C")
+            if elec_mx and "temperature_2m" in df_mx.columns:
+                corr = df_mx["temperature_2m"].corr(df_mx[elec_mx])
+                k3.metric("Corrélation Temp → Conso", f"{corr:+.2f}")
+            if "is_rainy" in df_mx.columns:
+                pct_rain = df_mx["is_rainy"].mean() * 100
+                k4.metric("Jours de pluie", f"{pct_rain:.0f}%")
+
+            st.markdown("---")
+
+            sys.path.insert(0, str(BASE_DIR))
+            from src.analysis.cross_dashboard import CrossDashboardBuilder
+            builder = CrossDashboardBuilder(df_mx)
+
+            # ── Graphique 1 : double-axe énergie + température ───────────────
+            st.markdown("**Consommation électrique vs Température**")
+            fig_et = builder.build_energy_vs_temperature()
+            fig_et.update_layout(height=380, margin=dict(t=20, b=40))
+            st.plotly_chart(fig_et, use_container_width=True)
+
+            # ── Graphiques 2 + 3 côte à côte ────────────────────────────────
+            col_sc, col_bar = st.columns(2)
+
+            with col_sc:
+                st.markdown("**Scatter : Température → Consommation**")
+                fig_sc = builder.build_scatter_temp_consumption()
+                fig_sc.update_layout(height=380, margin=dict(t=20, b=40))
+                st.plotly_chart(fig_sc, use_container_width=True)
+
+            with col_bar:
+                st.markdown("**Impact par catégorie de température**")
+                fig_wb = builder.build_weather_impact_bars()
+                fig_wb.update_layout(height=380, margin=dict(t=20, b=40))
+                st.plotly_chart(fig_wb, use_container_width=True)
+
+            # ── Graphique 4 : matrice de corrélation ─────────────────────────
+            st.markdown("**Matrice de corrélation — Énergie × Variables météo**")
+            fig_hm = builder.build_multivar_heatmap()
+            fig_hm.update_layout(height=460, margin=dict(t=20, b=40))
+            st.plotly_chart(fig_hm, use_container_width=True)
+
+            # ── Graphique 5 : vent + pluie ────────────────────────────────────
+            wind_ok = "wind_category" in df_mx.columns
+            rain_ok = "is_rainy" in df_mx.columns
+            if wind_ok or rain_ok:
+                st.markdown("**Impact vent & précipitations sur la consommation**")
+                fig_wr = builder.build_wind_rain_analysis()
+                fig_wr.update_layout(height=320, margin=dict(t=20, b=40))
+                st.plotly_chart(fig_wr, use_container_width=True)
+
+            # ── Graphique 6 : vue journalière ─────────────────────────────────
+            st.markdown("**Vue journalière — Consommation & Météo**")
+            fig_do = builder.build_daily_overview()
+            fig_do.update_layout(height=480, margin=dict(t=20, b=40))
+            st.plotly_chart(fig_do, use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 4 — Mix de production RTE
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab4:  # Mix de production
     st.markdown("### Mix de génération électrique — France (RTE)")
 
     LABELS_FR = {
@@ -576,10 +691,10 @@ with tab3:
             k3.metric("Filières", len(totals))
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 4 — Gouvernance
+# TAB 5 — Gouvernance
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab4:
+with tab5:
     st.markdown("### Gouvernance & qualité des données")
 
     if not gov:
@@ -656,10 +771,10 @@ with tab4:
     )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 5 — Prévisions Prophet J+7
+# TAB 6 — Prévisions Prophet J+7
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab5:
+with tab6:
     st.markdown("### Prévisions de consommation — J+7")
     st.caption(
         f"Modèle Prophet entraîné sur l'historique complet de {REGION_LABELS[selected_region]}. "
