@@ -482,9 +482,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;min-height:
 /* ── Footer ── */
 footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
 
-/* ── No-data overlay ── */
-.no-data{display:flex;align-items:center;justify-content:center;height:260px;
-         color:#bbb;font-size:1em}
+/* ── No-data banner ── */
+#nodata{display:none;margin:24px 40px;background:#fff8e1;border:1px solid #ffe082;
+        border-radius:12px;padding:28px 32px;text-align:center}
+#nodata .nd-icon{font-size:2.4em;margin-bottom:10px}
+#nodata .nd-title{font-size:1.1em;font-weight:700;color:#795548;margin-bottom:6px}
+#nodata .nd-sub{font-size:.88em;color:#a0856a;line-height:1.6}
 
 @media(max-width:900px){
   .chart-row{grid-template-columns:1fr}
@@ -502,7 +505,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
   <a href="index.html" class="back-btn">← Accueil</a>
   <div class="hdr-text">
     <h1>⚡ Consommation Énergétique</h1>
-    <p>Île-de-France · Données ODRE (Open Data Réseaux Énergies)</p>
+    <p>Île-de-France · Données ODRE · Disponible du __DATE_MIN__ au __DATE_MAX__</p>
   </div>
   <div class="hdr-badge" id="hdr-badge">— lignes</div>
 </div>
@@ -558,8 +561,19 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
   <div class="kpi"         id="kpi-gas"><div class="kpi-val">—</div><div class="kpi-label">Moyenne gaz (MW)</div></div>
 </div>
 
+<!-- No-data banner -->
+<div id="nodata">
+  <div class="nd-icon">🔍</div>
+  <div class="nd-title">Aucune donnée pour cette combinaison de filtres</div>
+  <div class="nd-sub">
+    Les données disponibles couvrent la période <strong>__DATE_MIN__</strong> → <strong>__DATE_MAX__</strong>
+    (Printemps 2026 — mars uniquement).<br>
+    Les filtres <em>Été</em>, <em>Automne</em> et <em>Hiver</em> ne correspondent à aucun enregistrement dans ce dataset.
+  </div>
+</div>
+
 <!-- Charts -->
-<div class="charts">
+<div id="charts-wrap" class="charts">
   <!-- Série temporelle -->
   <div class="chart-full"><div class="cc"><div id="c-ts"></div></div></div>
   <!-- Profil horaire + Jour de semaine -->
@@ -574,7 +588,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
     <div class="cc"><div id="c-cmp"></div></div>
     <div class="cc"><div id="c-hist"></div></div>
   </div>
-</div>
+</div>  <!-- /charts-wrap -->
 
 <footer>Pipeline Data · Sources : ODRE · Mise à jour quotidienne via GitLab CI/CD</footer>
 
@@ -758,6 +772,10 @@ function chartHist(F) {
 function updateAll() {
   const F = filtered();
   updateKPIs(F);
+  const empty = F.length === 0;
+  document.getElementById('nodata').style.display       = empty ? 'block' : 'none';
+  document.getElementById('charts-wrap').style.display  = empty ? 'none'  : 'block';
+  if (empty) return;
   chartTS(F);
   chartHour(F);
   chartDow(F);
