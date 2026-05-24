@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comparaison Consommation Énergétique — France</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;}
@@ -397,7 +397,10 @@ function applyFilters() {
      name:rB, line:{color:colB,dash:'dash'}, fillcolor:colB.replace(')',',0.1)').replace('rgb','rgba')}
   ], {
     height:300, margin:{t:20,r:20,b:20,l:20},
-    polar:{radialaxis:{visible:true,gridcolor:'#eee'}},
+    polar:{
+      radialaxis:{visible:true,gridcolor:'#eee',tickfont:{size:9}},
+      angularaxis:{tickfont:{size:11}}
+    },
     plot_bgcolor:'white', paper_bgcolor:'white',
     legend:{orientation:'h',y:-0.12}
   }, {responsive:true});
