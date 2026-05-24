@@ -49,10 +49,12 @@ class ETLPipeline:
         data_lake_dir: Path,
         warehouse_dir: Path,
         table_name: str = "energy_consumption",
+        file_prefix: str = "",
     ):
         self.data_lake_dir = Path(data_lake_dir)
         self.warehouse_dir = Path(warehouse_dir)
         self.table_name = table_name
+        self.file_prefix = file_prefix
         self.logger = get_logger(self.__class__.__name__)
 
     def run(
@@ -79,7 +81,7 @@ class ETLPipeline:
             # ── EXTRACT ──────────────────────────────────────
             self.logger.info("═══ ÉTAPE 1/3: EXTRACTION ═══")
             extractor = Extractor(self.data_lake_dir)
-            df = extractor.extract_latest(extension=source_extension)
+            df = extractor.extract_latest(extension=source_extension, prefix=self.file_prefix)
 
             if df is None or df.empty:
                 result.errors.append("Aucune donnée extraite")

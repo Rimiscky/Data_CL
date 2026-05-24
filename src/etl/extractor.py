@@ -23,32 +23,33 @@ class Extractor:
                 f"Répertoire Data Lake introuvable: {self.data_lake_dir}"
             )
 
-    def list_files(self, extension: str = "*") -> list[Path]:
+    def list_files(self, extension: str = "*", prefix: str = "") -> list[Path]:
         """
         Liste les fichiers disponibles dans le Data Lake.
 
         Args:
             extension: Extension à filtrer ('json', 'csv', '*').
+            prefix: Préfixe de nom de fichier pour filtrer par région.
 
         Returns:
             Liste triée des fichiers (plus récent en premier).
         """
-        pattern = f"*.{extension}" if extension != "*" else "*.*"
+        pattern = f"{prefix}*.{extension}" if extension != "*" else f"{prefix}*.*"
         files = sorted(
             self.data_lake_dir.glob(pattern),
             key=lambda f: f.stat().st_mtime,
             reverse=True,
         )
         self.logger.info(
-            "Fichiers trouvés (%s): %d", extension, len(files)
+            "Fichiers trouvés (%s, prefix=%r): %d", extension, prefix, len(files)
         )
         return files
 
-    def get_latest_file(self, extension: str = "json") -> Optional[Path]:
+    def get_latest_file(self, extension: str = "json", prefix: str = "") -> Optional[Path]:
         """Retourne le fichier le plus récent d'un type donné."""
-        files = self.list_files(extension)
+        files = self.list_files(extension, prefix=prefix)
         if not files:
-            self.logger.warning("Aucun fichier .%s trouvé", extension)
+            self.logger.warning("Aucun fichier .%s trouvé (prefix=%r)", extension, prefix)
             return None
         return files[0]
 
@@ -124,17 +125,18 @@ class Extractor:
             self.logger.error("Erreur extraction CSV %s: %s", filepath, e)
             raise
 
-    def extract_latest(self, extension: str = "json") -> Optional[pd.DataFrame]:
+    def extract_latest(self, extension: str = "json", prefix: str = "") -> Optional[pd.DataFrame]:
         """
         Extrait automatiquement le fichier le plus récent.
 
         Args:
             extension: Type de fichier ('json' ou 'csv').
+            prefix: Préfixe pour filtrer les fichiers par région.
 
         Returns:
             DataFrame ou None si aucun fichier trouvé.
         """
-        filepath = self.get_latest_file(extension)
+        filepath = self.get_latest_file(extension, prefix=prefix)
         if filepath is None:
             return None
 
