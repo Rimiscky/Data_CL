@@ -489,6 +489,64 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
 #nodata .nd-title{font-size:1.1em;font-weight:700;color:#795548;margin-bottom:6px}
 #nodata .nd-sub{font-size:.88em;color:#a0856a;line-height:1.6}
 
+/* ── Animations ── */
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(18px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-12px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+@keyframes kpiBounce{
+  0%  {transform:scale(1)}
+  40% {transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+@keyframes shimmer{
+  0%  {background-position:200% center}
+  100%{background-position:-200% center}
+}
+
+/* Chart containers: staggered fade-in on page load */
+.cc{animation:fadeInUp .45s cubic-bezier(.22,.68,0,1.2) both}
+.charts .chart-full:nth-child(1) .cc{animation-delay:.05s}
+.charts .chart-row:nth-child(2) .cc:nth-child(1){animation-delay:.12s}
+.charts .chart-row:nth-child(2) .cc:nth-child(2){animation-delay:.20s}
+.charts .chart-full:nth-child(3) .cc{animation-delay:.28s}
+.charts .chart-row:nth-child(4) .cc:nth-child(1){animation-delay:.36s}
+.charts .chart-row:nth-child(4) .cc:nth-child(2){animation-delay:.44s}
+
+/* No-data banner slide-in */
+#nodata.visible{display:block;animation:slideDown .3s cubic-bezier(.22,.68,0,1.2)}
+
+/* KPI cards */
+.kpi{transition:box-shadow .2s,transform .2s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.kpi-val{transition:color .25s;display:inline-block}
+.kpi-val.bounce{animation:kpiBounce .35s ease}
+
+/* Charts-wrap fade when filters update */
+#charts-wrap{transition:opacity .18s}
+#charts-wrap.updating{opacity:.45}
+
+/* Pills micro-interactions */
+.pill{transition:all .18s cubic-bezier(.4,0,.2,1)}
+.pill:active{transform:scale(.9)}
+.pill.active{box-shadow:0 2px 8px rgba(102,126,234,.35)}
+
+/* Filter bar: active-filter indicator */
+.fbar.has-filters{border-bottom:2px solid #667eea}
+.fbar-count strong{transition:color .2s}
+
+/* KPI shimmer while loading */
+.kpi.loading .kpi-val{
+  background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+  background-size:400% auto;
+  animation:shimmer .9s linear infinite;
+  color:transparent;border-radius:4px;
+}
+
 @media(max-width:900px){
   .chart-row{grid-template-columns:1fr}
   .fbar{gap:12px}
@@ -624,29 +682,51 @@ function filtered() {
   });
 }
 
-// ── KPIs ──────────────────────────────────────────────────────────────────
-function setKpi(id, val, label, delta) {
-  const el = document.getElementById(id);
-  el.querySelector('.kpi-val').textContent = val;
-  el.querySelector('.kpi-label').textContent = label;
-  if (delta !== undefined) {
-    let d = el.querySelector('.kpi-delta');
-    if (!d) { d=document.createElement('div'); d.className='kpi-delta'; el.appendChild(d); }
-    d.textContent = delta;
+// ── Animated counter ──────────────────────────────────────────────────────
+const _kpiPrev = {};
+function animCount(el, toVal, dur=520) {
+  const from = _kpiPrev[el.id] || 0;
+  _kpiPrev[el.id] = toVal;
+  if (isNaN(toVal)) { el.textContent = '—'; return; }
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - t, 3);          // easeOutCubic
+    el.textContent = Math.round(from + (toVal - from) * ease).toLocaleString('fr-FR');
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      el.classList.remove('bounce');
+      void el.offsetWidth;                          // force reflow
+      el.classList.add('bounce');
+    }
   }
+  requestAnimationFrame(tick);
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+function setKpi(id, numVal, label) {
+  const el   = document.getElementById(id);
+  const valEl = el.querySelector('.kpi-val');
+  valEl.id = valEl.id || (id + '_v');
+  el.querySelector('.kpi-label').textContent = label;
+  if (numVal === null || isNaN(numVal)) { valEl.textContent = '—'; _kpiPrev[valEl.id]=0; }
+  else animCount(valEl, numVal);
 }
 function updateKPIs(F) {
   const vals = F.map(d=>d.elec).filter(v=>v!==null);
   const gas  = F.map(d=>d.gas).filter(v=>v!==null);
   const n = F.length;
-  setKpi('kpi-n',   n.toLocaleString('fr-FR'), 'Enregistrements');
-  setKpi('kpi-mean', fmt(mean(vals)), 'Moyenne élec (MW)');
-  setKpi('kpi-max',  fmt(vals.length ? Math.max(...vals) : null), 'Pic max (MW)');
-  setKpi('kpi-min',  fmt(vals.length ? Math.min(...vals) : null), 'Min (MW)');
-  setKpi('kpi-gas',  fmt(mean(gas)), 'Moyenne gaz (MW)');
+  setKpi('kpi-n',    n,                                           'Enregistrements');
+  setKpi('kpi-mean', vals.length ? mean(vals) : null,             'Moyenne élec (MW)');
+  setKpi('kpi-max',  vals.length ? Math.max(...vals) : null,      'Pic max (MW)');
+  setKpi('kpi-min',  vals.length ? Math.min(...vals) : null,      'Min (MW)');
+  setKpi('kpi-gas',  gas.length  ? mean(gas)  : null,             'Moyenne gaz (MW)');
   document.getElementById('fbar-count').innerHTML =
     '<strong>'+n.toLocaleString('fr-FR')+'</strong> / '+TOTAL.toLocaleString('fr-FR')+' lignes';
   document.getElementById('hdr-badge').textContent = n.toLocaleString('fr-FR')+' enregistrements';
+  // Highlight filter bar if any filter is active
+  const active = S.season||S.jour||S.heure||S.df!=='__DATE_MIN__'||S.dt!=='__DATE_MAX__';
+  document.querySelector('.fbar').classList.toggle('has-filters', !!active);
 }
 
 // ── Chart: Série temporelle ───────────────────────────────────────────────
@@ -773,15 +853,27 @@ function updateAll() {
   const F = filtered();
   updateKPIs(F);
   const empty = F.length === 0;
-  document.getElementById('nodata').style.display       = empty ? 'block' : 'none';
-  document.getElementById('charts-wrap').style.display  = empty ? 'none'  : 'block';
-  if (empty) return;
-  chartTS(F);
-  chartHour(F);
-  chartDow(F);
-  chartHeat(F);
-  chartCmp(F);
-  chartHist(F);
+  const nd = document.getElementById('nodata');
+  const cw = document.getElementById('charts-wrap');
+
+  if (empty) {
+    nd.style.display = '';             // let CSS class drive display
+    nd.classList.add('visible');
+    cw.style.display = 'none';
+    return;
+  }
+
+  nd.classList.remove('visible');
+  nd.style.display = '';              // CSS #nodata{display:none} takes over
+  cw.style.display = 'block';
+
+  // Brief shimmer while Plotly recalculates
+  cw.classList.add('updating');
+  requestAnimationFrame(() => {
+    chartTS(F); chartHour(F); chartDow(F);
+    chartHeat(F); chartCmp(F); chartHist(F);
+    requestAnimationFrame(() => cw.classList.remove('updating'));
+  });
 }
 
 // ── Events: date inputs ───────────────────────────────────────────────────
