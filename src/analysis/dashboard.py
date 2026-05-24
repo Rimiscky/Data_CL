@@ -339,132 +339,62 @@ class DashboardBuilder:
 
     def export_html(self, filename: str = "dashboard_energy_idf.html") -> Path:
         """
-        Exporte tous les graphiques dans un fichier HTML unique.
-
-        Args:
-            filename: Nom du fichier de sortie.
-
-        Returns:
-            Chemin du fichier HTML généré.
+        Exporte un dashboard HTML interactif avec filtres JS côté client.
+        Les données brutes sont embarquées en JSON ; tous les graphiques
+        se mettent à jour dynamiquement sans rechargement de page.
         """
-        if not self._figures:
-            self.build_all()
+        import json
+        import math
+        import pandas as pd
 
         filepath = self.output_dir / filename
+        df = self.analyzer.df.copy()
+        elec_col = self.analyzer._detect_elec_column()
+        if not elec_col:
+            self.logger.error("Colonne électricité non trouvée")
+            return filepath
 
-        summary = self.analyzer.summary()
+        def _safe(v):
+            if v is None:
+                return None
+            try:
+                f = float(v)
+                return None if math.isnan(f) else round(f, 1)
+            except (TypeError, ValueError):
+                return None
 
-        html_parts = [
-            "<!DOCTYPE html>",
-            '<html lang="fr">',
-            "<head>",
-            '  <meta charset="UTF-8">',
-            '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
-            "  <title>Dashboard Consommation Énergétique — Île-de-France</title>",
-            '  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>',
-            "  <style>",
-            "    * { margin: 0; padding: 0; box-sizing: border-box; }",
-            "    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;",
-            "           background: #f0f2f5; color: #333; }",
-            "    .header { background: linear-gradient(135deg, #1a1a2e, #16213e);",
-            "              color: white; padding: 30px 40px; }",
-            "    .header h1 { font-size: 1.8em; margin-bottom: 5px; }",
-            "    .header p { opacity: 0.8; font-size: 0.95em; }",
-            "    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));",
-            "               gap: 15px; padding: 20px 40px; }",
-            "    .metric-card { background: white; border-radius: 10px; padding: 20px;",
-            "                   box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }",
-            "    .metric-card .value { font-size: 2em; font-weight: bold; color: #1f77b4; }",
-            "    .metric-card .label { font-size: 0.85em; color: #666; margin-top: 5px; }",
-            "    .charts { padding: 20px 40px; }",
-            "    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px;",
-            "                 margin-bottom: 20px; }",
-            "    .chart-full { margin-bottom: 20px; }",
-            "    .chart-container { background: white; border-radius: 10px;",
-            "                       box-shadow: 0 2px 8px rgba(0,0,0,0.08);",
-            "                       padding: 15px; overflow: hidden; }",
-            "    @media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }",
-            "    .footer { text-align: center; padding: 20px; color: #999; font-size: 0.8em; }",
-            "  </style>",
-            "</head>",
-            "<body>",
-            '  <div class="header">',
-            "    <h1>Dashboard Consommation Énergétique</h1>",
-            "    <p>Île-de-France — Données ODRE (Open Data Réseaux Énergies)</p>",
-            "  </div>",
-        ]
+        records = []
+        for _, row in df.iterrows():
+            dt_raw = row.get("datetime")
+            dt_str = str(dt_raw)[:16] if pd.notna(dt_raw) else ""
+            date_str = str(row.get("date", ""))[:10]
+            records.append({
+                "dt": dt_str,
+                "date": date_str,
+                "h": int(row["hour"]) if pd.notna(row.get("hour")) else 0,
+                "dow": int(row["day_of_week"]) if pd.notna(row.get("day_of_week")) else 0,
+                "mo": int(row["month"]) if pd.notna(row.get("month")) else 1,
+                "we": bool(row.get("is_weekend", False)),
+                "elec": _safe(row.get(elec_col)),
+                "gas": _safe(row.get("gas_consumption_mw")),
+                "tot": _safe(row.get("total_consumption_mw")),
+            })
 
-        # Métriques en haut
-        elec = summary.get("electricity", {})
-        date_range = summary.get("date_range", {})
-        html_parts.append('  <div class="metrics">')
-        metrics = [
-            (str(summary.get("total_records", 0)), "Enregistrements"),
-            (date_range.get("start", "N/A")[:10], "Date début"),
-            (date_range.get("end", "N/A")[:10], "Date fin"),
-            (f"{elec.get('mean_mw', 0):,.0f}", "Moyenne (MW)"),
-            (f"{elec.get('max_mw', 0):,.0f}", "Pic max (MW)"),
-            (f"{elec.get('min_mw', 0):,.0f}", "Min (MW)"),
-        ]
-        for value, label in metrics:
-            html_parts.append(
-                f'    <div class="metric-card">'
-                f'<div class="value">{value}</div>'
-                f'<div class="label">{label}</div></div>'
-            )
-        html_parts.append("  </div>")
+        dates = sorted({r["date"] for r in records if r["date"]})
+        date_min = dates[0] if dates else ""
+        date_max = dates[-1] if dates else ""
+        data_json = json.dumps(records, ensure_ascii=False)
 
-        # Graphiques
-        html_parts.append('  <div class="charts">')
-
-        chart_layout = [
-            ("chart-full", ["daily_consumption"]),
-            ("chart-row", ["hourly_profile", "rte_mix"]),
-            ("chart-row", ["weekday_comparison", "day_of_week"]),
-            ("chart-full", ["heatmap"]),
-            ("chart-full", ["anomalies"]),
-        ]
-
-        div_id = 0
-        js_parts = []
-
-        for css_class, chart_keys in chart_layout:
-            html_parts.append(f'    <div class="{css_class}">')
-            for key in chart_keys:
-                fig = self._figures.get(key)
-                if fig:
-                    chart_div = f"chart_{div_id}"
-                    html_parts.append(
-                        f'      <div class="chart-container">'
-                        f'<div id="{chart_div}"></div></div>'
-                    )
-                    fig_json = fig.to_json()
-                    js_parts.append(
-                        f"    Plotly.newPlot('{chart_div}', "
-                        f"{fig_json}.data, {fig_json}.layout, "
-                        f"{{responsive: true}});"
-                    )
-                    div_id += 1
-            html_parts.append("    </div>")
-
-        html_parts.append("  </div>")
-
-        # Footer
-        html_parts.append(
-            '  <div class="footer">'
-            "Pipeline Data — Consommation Énergétique IDF"
-            "</div>"
+        # Inject Python values into a plain string (no f-string for JS body)
+        html = (
+            _DASHBOARD_HTML_TEMPLATE
+            .replace("__DATA_JSON__", data_json)
+            .replace("__DATE_MIN__", date_min)
+            .replace("__DATE_MAX__", date_max)
         )
 
-        # Script Plotly
-        html_parts.append("  <script>")
-        html_parts.extend(js_parts)
-        html_parts.append("  </script>")
-        html_parts.append("</body>")
-        html_parts.append("</html>")
-
-        filepath.write_text("\n".join(html_parts), encoding="utf-8")
-        self.logger.info("Dashboard HTML exporté: %s", filepath)
+        filepath.write_text(html, encoding="utf-8")
+        self.logger.info("Dashboard HTML interactif exporté: %s (%d lignes)", filepath, len(records))
         return filepath
 
     def _empty_figure(self, message: str) -> go.Figure:
@@ -476,3 +406,398 @@ class DashboardBuilder:
         )
         fig.update_layout(template="plotly_white", height=300)
         return fig
+
+
+# ---------------------------------------------------------------------------
+# HTML template for the interactive dashboard (injected via str.replace)
+# Placeholders: __DATA_JSON__  __DATE_MIN__  __DATE_MAX__
+# ---------------------------------------------------------------------------
+_DASHBOARD_HTML_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Consommation Énergétique — Île-de-France</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+
+/* ── Header ── */
+.hdr{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:22px 40px;
+     display:flex;align-items:center;gap:24px}
+.back-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;
+          padding:8px 16px;font-size:.85em;cursor:pointer;text-decoration:none;
+          white-space:nowrap;transition:background .2s}
+.back-btn:hover{background:rgba(255,255,255,.28)}
+.hdr-text h1{font-size:1.55em;margin-bottom:3px}
+.hdr-text p{opacity:.75;font-size:.88em}
+.hdr-badge{margin-left:auto;background:rgba(255,255,255,.12);border-radius:20px;
+           padding:6px 16px;font-size:.82em;white-space:nowrap}
+
+/* ── Filter bar ── */
+.fbar{background:#fff;border-bottom:1px solid #e0e3ea;padding:14px 40px;
+      display:flex;flex-wrap:wrap;align-items:center;gap:20px;position:sticky;
+      top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fg{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fg label{font-size:.78em;font-weight:700;text-transform:uppercase;
+          letter-spacing:.8px;color:#888;white-space:nowrap}
+.fg input[type=date]{border:1px solid #d0d5dd;border-radius:7px;padding:5px 9px;
+                     font-size:.85em;color:#333;outline:none;cursor:pointer}
+.fg input[type=date]:focus{border-color:#667eea}
+.pills{display:flex;gap:5px;flex-wrap:wrap}
+.pill{background:#f0f2f5;border:1px solid #e0e3ea;border-radius:20px;
+      padding:4px 13px;font-size:.82em;cursor:pointer;transition:all .18s;
+      color:#555;font-weight:500;white-space:nowrap}
+.pill:hover{border-color:#667eea;color:#667eea}
+.pill.active{background:#667eea;border-color:#667eea;color:#fff;font-weight:600}
+.pill.active.danger{background:#e74c3c;border-color:#e74c3c}
+.btn-reset{background:none;border:1px solid #ccc;border-radius:7px;padding:5px 12px;
+           font-size:.82em;cursor:pointer;color:#666;transition:all .18s}
+.btn-reset:hover{border-color:#e74c3c;color:#e74c3c}
+.fbar-count{font-size:.82em;color:#888;white-space:nowrap;margin-left:auto}
+.fbar-count strong{color:#1a1a2e}
+.fbar-sep{width:1px;height:30px;background:#e0e3ea;flex-shrink:0}
+
+/* ── KPI cards ── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:15px;padding:22px 40px 10px}
+.kpi{background:#fff;border-radius:12px;padding:20px 22px;
+     box-shadow:0 2px 10px rgba(0,0,0,.07);border-top:4px solid #667eea}
+.kpi.green{border-color:#2ca02c}
+.kpi.orange{border-color:#ff7f0e}
+.kpi.red{border-color:#d62728}
+.kpi-val{font-size:1.8em;font-weight:700;color:#1a1a2e;line-height:1}
+.kpi-label{font-size:.78em;color:#888;margin-top:6px;text-transform:uppercase;
+           letter-spacing:.6px}
+.kpi-delta{font-size:.78em;margin-top:4px;color:#aaa}
+
+/* ── Charts ── */
+.charts{padding:14px 40px 30px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.chart-full{margin-bottom:18px}
+.cc{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+    padding:16px;overflow:hidden}
+
+/* ── Footer ── */
+footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
+
+/* ── No-data overlay ── */
+.no-data{display:flex;align-items:center;justify-content:center;height:260px;
+         color:#bbb;font-size:1em}
+
+@media(max-width:900px){
+  .chart-row{grid-template-columns:1fr}
+  .fbar{gap:12px}
+  .hdr{flex-wrap:wrap}
+  .kpis,.charts{padding-left:16px;padding-right:16px}
+  .fbar{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <a href="index.html" class="back-btn">← Accueil</a>
+  <div class="hdr-text">
+    <h1>⚡ Consommation Énergétique</h1>
+    <p>Île-de-France · Données ODRE (Open Data Réseaux Énergies)</p>
+  </div>
+  <div class="hdr-badge" id="hdr-badge">— lignes</div>
+</div>
+
+<!-- Filter bar -->
+<div class="fbar">
+  <div class="fg">
+    <label>Période</label>
+    <input type="date" id="dateFrom" value="__DATE_MIN__">
+    <span style="color:#bbb">→</span>
+    <input type="date" id="dateTo" value="__DATE_MAX__">
+  </div>
+  <div class="fbar-sep"></div>
+  <div class="fg">
+    <label>Saison</label>
+    <div class="pills" id="p-season">
+      <button class="pill active" data-v="">Tout</button>
+      <button class="pill" data-v="Printemps">🌸 Printemps</button>
+      <button class="pill" data-v="Été">☀️ Été</button>
+      <button class="pill" data-v="Automne">🍂 Automne</button>
+      <button class="pill" data-v="Hiver">❄️ Hiver</button>
+    </div>
+  </div>
+  <div class="fbar-sep"></div>
+  <div class="fg">
+    <label>Jour</label>
+    <div class="pills" id="p-jour">
+      <button class="pill active" data-v="">Tout</button>
+      <button class="pill" data-v="semaine">Semaine</button>
+      <button class="pill" data-v="weekend">Weekend</button>
+    </div>
+  </div>
+  <div class="fbar-sep"></div>
+  <div class="fg">
+    <label>Heure</label>
+    <div class="pills" id="p-heure">
+      <button class="pill active" data-v="">Toutes</button>
+      <button class="pill" data-v="pointe">Pointe (7h–21h)</button>
+      <button class="pill" data-v="creuse">Creuse (22h–6h)</button>
+    </div>
+  </div>
+  <div class="fbar-sep"></div>
+  <button class="btn-reset" onclick="resetFilters()">↺ Réinitialiser</button>
+  <span class="fbar-count" id="fbar-count"><strong>—</strong> / — lignes</span>
+</div>
+
+<!-- KPIs -->
+<div class="kpis">
+  <div class="kpi"         id="kpi-n"><div class="kpi-val">—</div><div class="kpi-label">Enregistrements</div></div>
+  <div class="kpi green"   id="kpi-mean"><div class="kpi-val">—</div><div class="kpi-label">Moyenne élec (MW)</div></div>
+  <div class="kpi orange"  id="kpi-max"><div class="kpi-val">—</div><div class="kpi-label">Pic max (MW)</div></div>
+  <div class="kpi red"     id="kpi-min"><div class="kpi-val">—</div><div class="kpi-label">Min (MW)</div></div>
+  <div class="kpi"         id="kpi-gas"><div class="kpi-val">—</div><div class="kpi-label">Moyenne gaz (MW)</div></div>
+</div>
+
+<!-- Charts -->
+<div class="charts">
+  <!-- Série temporelle -->
+  <div class="chart-full"><div class="cc"><div id="c-ts"></div></div></div>
+  <!-- Profil horaire + Jour de semaine -->
+  <div class="chart-row">
+    <div class="cc"><div id="c-hour"></div></div>
+    <div class="cc"><div id="c-dow"></div></div>
+  </div>
+  <!-- Heatmap Jour×Heure -->
+  <div class="chart-full"><div class="cc"><div id="c-heat"></div></div></div>
+  <!-- Semaine vs Weekend + Distribution -->
+  <div class="chart-row">
+    <div class="cc"><div id="c-cmp"></div></div>
+    <div class="cc"><div id="c-hist"></div></div>
+  </div>
+</div>
+
+<footer>Pipeline Data · Sources : ODRE · Mise à jour quotidienne via GitLab CI/CD</footer>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+window.D = __DATA_JSON__;
+const TOTAL = window.D.length;
+
+// ── State ─────────────────────────────────────────────────────────────────
+const S = {df:'__DATE_MIN__', dt:'__DATE_MAX__', season:'', jour:'', heure:''};
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const SEASON = mo => [3,4,5].includes(mo)?'Printemps':[6,7,8].includes(mo)?'Été':[9,10,11].includes(mo)?'Automne':'Hiver';
+const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const std  = a => { const m=mean(a); return a.length ? Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length) : 0; };
+const fmt  = v => v===null||isNaN(v) ? '—' : Math.round(v).toLocaleString('fr-FR');
+const CFG  = {responsive:true, displayModeBar:false};
+const LAY  = {template:'plotly_white', margin:{t:44,l:52,r:18,b:44}, font:{family:'Segoe UI,sans-serif',size:12}};
+const DOW_NAMES = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const C_BLUE='#667eea', C_GREEN='#2ca02c', C_ORG='#ff7f0e', C_RED='#d62728', C_PUR='#9467bd';
+
+// ── Filtered data ─────────────────────────────────────────────────────────
+function filtered() {
+  return window.D.filter(d => {
+    if (S.df && d.date < S.df) return false;
+    if (S.dt && d.date > S.dt) return false;
+    if (S.season && SEASON(d.mo) !== S.season) return false;
+    if (S.jour === 'semaine' && d.we) return false;
+    if (S.jour === 'weekend' && !d.we) return false;
+    if (S.heure === 'pointe' && (d.h < 7 || d.h > 21)) return false;
+    if (S.heure === 'creuse' && d.h >= 7 && d.h <= 21) return false;
+    return true;
+  });
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+function setKpi(id, val, label, delta) {
+  const el = document.getElementById(id);
+  el.querySelector('.kpi-val').textContent = val;
+  el.querySelector('.kpi-label').textContent = label;
+  if (delta !== undefined) {
+    let d = el.querySelector('.kpi-delta');
+    if (!d) { d=document.createElement('div'); d.className='kpi-delta'; el.appendChild(d); }
+    d.textContent = delta;
+  }
+}
+function updateKPIs(F) {
+  const vals = F.map(d=>d.elec).filter(v=>v!==null);
+  const gas  = F.map(d=>d.gas).filter(v=>v!==null);
+  const n = F.length;
+  setKpi('kpi-n',   n.toLocaleString('fr-FR'), 'Enregistrements');
+  setKpi('kpi-mean', fmt(mean(vals)), 'Moyenne élec (MW)');
+  setKpi('kpi-max',  fmt(vals.length ? Math.max(...vals) : null), 'Pic max (MW)');
+  setKpi('kpi-min',  fmt(vals.length ? Math.min(...vals) : null), 'Min (MW)');
+  setKpi('kpi-gas',  fmt(mean(gas)), 'Moyenne gaz (MW)');
+  document.getElementById('fbar-count').innerHTML =
+    '<strong>'+n.toLocaleString('fr-FR')+'</strong> / '+TOTAL.toLocaleString('fr-FR')+' lignes';
+  document.getElementById('hdr-badge').textContent = n.toLocaleString('fr-FR')+' enregistrements';
+}
+
+// ── Chart: Série temporelle ───────────────────────────────────────────────
+function chartTS(F) {
+  const sem = F.filter(d=>!d.we && d.elec!==null);
+  const wkd = F.filter(d=>d.we  && d.elec!==null);
+  const traces = [
+    {x:sem.map(d=>d.dt), y:sem.map(d=>d.elec), mode:'lines+markers',
+     name:'Semaine', line:{color:C_BLUE,width:1.5}, marker:{size:3}, opacity:.85},
+    {x:wkd.map(d=>d.dt), y:wkd.map(d=>d.elec), mode:'markers',
+     name:'Weekend', marker:{color:C_PUR,size:5}, opacity:.9},
+  ];
+  const layout = Object.assign({}, LAY, {
+    title:'Consommation électrique dans le temps', height:320,
+    xaxis:{title:'Date/Heure'}, yaxis:{title:'MW'}, hovermode:'x unified', showlegend:true
+  });
+  Plotly.react('c-ts', traces, layout, CFG);
+}
+
+// ── Chart: Profil horaire ─────────────────────────────────────────────────
+function chartHour(F) {
+  const byH = {};
+  F.filter(d=>d.elec!==null).forEach(d => { (byH[d.h]=byH[d.h]||[]).push(d.elec); });
+  const hours = Array.from({length:24},(_,i)=>i);
+  const means = hours.map(h => mean(byH[h]||[]));
+  const stds  = hours.map(h => std(byH[h]||[]));
+  const upper = means.map((m,i)=>m!==null?m+stds[i]:null);
+  const lower = means.map((m,i)=>m!==null?m-stds[i]:null);
+  const traces = [
+    {x:hours, y:upper, mode:'lines', line:{width:0}, showlegend:false, hoverinfo:'skip'},
+    {x:hours, y:lower, mode:'lines', fill:'tonexty', fillcolor:'rgba(102,126,234,.15)',
+     line:{width:0}, name:'±1σ'},
+    {x:hours, y:means, mode:'lines+markers', name:'Moyenne',
+     line:{color:C_BLUE,width:2.5}, marker:{size:5}},
+  ];
+  const layout = Object.assign({}, LAY, {
+    title:'Profil de consommation horaire', height:300,
+    xaxis:{title:'Heure',dtick:2}, yaxis:{title:'MW'}, hovermode:'x unified'
+  });
+  Plotly.react('c-hour', traces, layout, CFG);
+}
+
+// ── Chart: Jour de semaine ────────────────────────────────────────────────
+function chartDow(F) {
+  const byD = {};
+  F.filter(d=>d.elec!==null).forEach(d => { (byD[d.dow]=byD[d.dow]||[]).push(d.elec); });
+  const dows   = [0,1,2,3,4,5,6];
+  const means  = dows.map(d => mean(byD[d]||[]));
+  const stds   = dows.map(d => std(byD[d]||[]));
+  const colors = dows.map(d => d>=5 ? C_PUR : C_BLUE);
+  const traces = [{
+    x: DOW_NAMES, y: means,
+    error_y:{type:'data', array:stds, visible:true, color:'rgba(0,0,0,.25)'},
+    type:'bar', marker:{color:colors},
+    text: means.map(v=>v!==null?Math.round(v):''),
+    textposition:'outside', hovertemplate:'%{x}<br>%{y:.0f} MW<extra></extra>'
+  }];
+  const layout = Object.assign({}, LAY, {
+    title:'Profil par jour de la semaine', height:300,
+    xaxis:{title:''}, yaxis:{title:'MW'}, showlegend:false
+  });
+  Plotly.react('c-dow', traces, layout, CFG);
+}
+
+// ── Chart: Heatmap Jour × Heure ───────────────────────────────────────────
+function chartHeat(F) {
+  const sums   = Array.from({length:7}, ()=>new Float64Array(24));
+  const counts = Array.from({length:7}, ()=>new Int32Array(24));
+  F.filter(d=>d.elec!==null).forEach(d => {
+    sums[d.dow][d.h]   += d.elec;
+    counts[d.dow][d.h] += 1;
+  });
+  const z = sums.map((row,dow) => Array.from({length:24},(_,h)=>
+    counts[dow][h] > 0 ? Math.round(row[h]/counts[dow][h]) : null));
+  const layout = Object.assign({}, LAY, {
+    title:'Heatmap consommation — Jour × Heure (MW moyen)', height:300,
+    xaxis:{title:'Heure', dtick:2,
+           tickvals:[0,2,4,6,8,10,12,14,16,18,20,22],
+           ticktext:['0h','2h','4h','6h','8h','10h','12h','14h','16h','18h','20h','22h']},
+    yaxis:{title:''}
+  });
+  Plotly.react('c-heat', [{
+    z, x:Array.from({length:24},(_,i)=>i), y:DOW_NAMES,
+    type:'heatmap', colorscale:'YlOrRd', colorbar:{title:'MW'},
+    hovertemplate:'%{y} %{x}h<br>%{z:.0f} MW<extra></extra>'
+  }], layout, CFG);
+}
+
+// ── Chart: Semaine vs Weekend ──────────────────────────────────────────────
+function chartCmp(F) {
+  const sem = F.filter(d=>!d.we&&d.elec!==null).map(d=>d.elec);
+  const wkd = F.filter(d=>d.we &&d.elec!==null).map(d=>d.elec);
+  const traces = [{
+    x:['Semaine','Weekend'],
+    y:[mean(sem), mean(wkd)],
+    error_y:{type:'data', array:[std(sem),std(wkd)], visible:true},
+    type:'bar', marker:{color:[C_BLUE,C_PUR]},
+    text:[fmt(mean(sem)),fmt(mean(wkd))], textposition:'outside',
+    hovertemplate:'%{x}<br>%{y:.0f} MW<extra></extra>'
+  }];
+  const layout = Object.assign({}, LAY, {
+    title:'Semaine vs Weekend', height:300,
+    xaxis:{title:''}, yaxis:{title:'MW moyen'}, showlegend:false
+  });
+  Plotly.react('c-cmp', traces, layout, CFG);
+}
+
+// ── Chart: Distribution ───────────────────────────────────────────────────
+function chartHist(F) {
+  const vals = F.filter(d=>d.elec!==null).map(d=>d.elec);
+  const layout = Object.assign({}, LAY, {
+    title:'Distribution de la consommation', height:300,
+    xaxis:{title:'MW'}, yaxis:{title:'Fréquence'}, showlegend:false
+  });
+  if (!vals.length) { Plotly.react('c-hist',[],layout,CFG); return; }
+  Plotly.react('c-hist', [{
+    x:vals, type:'histogram', nbinsx:30,
+    marker:{color:C_BLUE, opacity:.75, line:{color:'#fff',width:.5}}
+  }], layout, CFG);
+}
+
+// ── Main update ───────────────────────────────────────────────────────────
+function updateAll() {
+  const F = filtered();
+  updateKPIs(F);
+  chartTS(F);
+  chartHour(F);
+  chartDow(F);
+  chartHeat(F);
+  chartCmp(F);
+  chartHist(F);
+}
+
+// ── Events: date inputs ───────────────────────────────────────────────────
+document.getElementById('dateFrom').addEventListener('change', e=>{S.df=e.target.value; updateAll();});
+document.getElementById('dateTo').addEventListener('change',   e=>{S.dt=e.target.value; updateAll();});
+
+// ── Events: pills ─────────────────────────────────────────────────────────
+function wirePills(groupId, stateKey) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      S[stateKey] = btn.dataset.v;
+      updateAll();
+    });
+  });
+}
+wirePills('p-season', 'season');
+wirePills('p-jour',   'jour');
+wirePills('p-heure',  'heure');
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+function resetFilters() {
+  S.df='__DATE_MIN__'; S.dt='__DATE_MAX__'; S.season=''; S.jour=''; S.heure='';
+  document.getElementById('dateFrom').value = '__DATE_MIN__';
+  document.getElementById('dateTo').value   = '__DATE_MAX__';
+  document.querySelectorAll('.pills .pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.pills .pill[data-v=""]').forEach(b=>b.classList.add('active'));
+  updateAll();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+updateAll();
+</script>
+</body>
+</html>"""
