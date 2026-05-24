@@ -31,9 +31,10 @@ class TestRTEClient:
         assert client.oauth_token == "env_token_value"
         client.close()
 
-    def test_no_token_returns_empty_list(self, monkeypatch):
-        monkeypatch.delenv("RTE_API_KEY", raising=False)
+    @patch.dict("os.environ", {"RTE_API_KEY": ""}, clear=False)
+    def test_no_token_returns_empty_list(self):
         client = RTEClient(oauth_token="")
+        client.oauth_token = ""
         result = client.fetch_actual_generation()
         assert result == []
         client.close()
