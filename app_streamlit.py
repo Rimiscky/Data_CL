@@ -23,6 +23,56 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown("""
+<style>
+/* ── Onglets ───────────────────────────────────────────────── */
+button[data-baseweb="tab"] {
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 6px 18px;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom: 3px solid #1f77b4;
+    color: #1f77b4;
+}
+
+/* ── Métriques ─────────────────────────────────────────────── */
+[data-testid="stMetric"] {
+    background: rgba(31,119,180,0.06);
+    border: 1px solid rgba(31,119,180,0.15);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+[data-testid="stMetricLabel"] { font-size: 0.78rem; opacity: 0.75; }
+[data-testid="stMetricValue"] { font-size: 1.7rem; font-weight: 700; }
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    border-right: 1px solid rgba(128,128,128,0.15);
+}
+[data-testid="stSidebar"] h2 {
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+}
+
+/* ── Titres de section ─────────────────────────────────────── */
+h3 { font-weight: 700; margin-bottom: 0.25rem; }
+
+/* ── Cartes de règles gouvernance ──────────────────────────── */
+.rule-card {
+    padding: 10px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 8px;
+    border-left: 4px solid;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.rule-ok      { border-color: #2ca02c; }
+.rule-warning { border-color: #ff7f0e; }
+.rule-error   { border-color: #d62728; }
+</style>
+""", unsafe_allow_html=True)
+
 # ── Chemins ────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
 WAREHOUSE_DIR = BASE_DIR / "data" / "warehouse"
@@ -417,16 +467,11 @@ with tab1:
     st.markdown("---")
     if gov:
         score = gov.get("score", 0)
-        color = "#2ca02c" if score >= 80 else ("#ff7f0e" if score >= 60 else "#d62728")
+        score_icon = "🟢" if score >= 80 else ("🟡" if score >= 60 else "🔴")
+        ts = gov.get("timestamp", "")[:10]
         col_score, col_rules = st.columns([1, 2])
         with col_score:
-            st.markdown(f"**Score qualité des données**")
-            st.markdown(
-                f"<div style='font-size:3em;font-weight:bold;color:{color}'>{score:.0f}%</div>",
-                unsafe_allow_html=True,
-            )
-            ts = gov.get("timestamp", "")[:10]
-            st.caption(f"Calculé le {ts}")
+            st.metric("Score qualité", f"{score:.0f}%", help=f"Calculé le {ts}")
         with col_rules:
             st.markdown("**Règles de gouvernance**")
             for rule in gov.get("rules", []):
@@ -871,16 +916,16 @@ with tab5:
         for rule in gov.get("rules", []):
             sev = rule.get("severity", "info")
             if rule["passed"]:
-                icon, bg = "✅", "#e8f5e9"
+                icon, cls = "✅", "rule-ok"
             elif sev == "warning":
-                icon, bg = "⚠️", "#fff3e0"
+                icon, cls = "⚠️", "rule-warning"
             else:
-                icon, bg = "❌", "#ffeaea"
+                icon, cls = "❌", "rule-error"
 
             st.markdown(
-                f"<div style='background:{bg};padding:10px 14px;border-radius:6px;margin-bottom:6px'>"
-                f"{icon} <b>{rule['description']}</b><br>"
-                f"<small style='color:#555'>{rule['details']}</small>"
+                f"<div class='rule-card {cls}'>"
+                f"<b>{icon} {rule['description']}</b><br>"
+                f"<span style='opacity:.75;font-size:.85rem'>{rule['details']}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
