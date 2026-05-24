@@ -366,13 +366,13 @@ with st.sidebar:
     )
     st.markdown("<div class='sb-header'>Tableaux de bord</div>", unsafe_allow_html=True)
     st.link_button(
-        "🌐 Dashboard HTML (EC2)",
-        url="http://13.39.99.56:8080/dashboards/",
+        "🌐 Dashboard HTML",
+        url="http://localhost:8080",
         use_container_width=True,
     )
     st.link_button(
-        "📊 Grafana (EC2)",
-        url="http://13.39.99.56:3000",
+        "📊 Grafana",
+        url="http://localhost:3000",
         use_container_width=True,
     )
 
