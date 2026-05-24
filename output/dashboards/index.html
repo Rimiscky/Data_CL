@@ -113,7 +113,7 @@
 <div class="header">
   <h1>⚡ Projet Data Engineering</h1>
   <p>Tableaux de bord interactifs — Consommation énergétique France</p>
-  <div class="badge">ODRE · Open Data Réseaux Énergies · AWS EC2</div>
+  <div class="badge">ODRE · Open Data Réseaux Énergies · GitLab CI/CD</div>
 </div>
 
 <div class="cards">
@@ -127,7 +127,7 @@
       <div style="margin-top:10px;">
         <span class="tag blue">Filtres interactifs</span>
         <span class="tag blue">6 graphiques</span>
-        <span class="tag green">Temps réel</span>
+        <span class="tag green">500 lignes</span>
       </div>
     </div>
     <div class="card-body">
@@ -140,7 +140,7 @@
       </ul>
     </div>
     <div class="stats">
-      <div class="stat"><div class="stat-val">500</div><div class="stat-label">Points</div></div>
+      <div class="stat"><div class="stat-val">500</div><div class="stat-label">Lignes</div></div>
       <div class="stat"><div class="stat-val">6</div><div class="stat-label">Graphiques</div></div>
       <div class="stat"><div class="stat-val">4</div><div class="stat-label">Filtres</div></div>
     </div>
@@ -154,7 +154,7 @@
       <div class="card-title">Comparaison Multi-Régions</div>
       <div class="card-subtitle">Analyse comparative inter-régionale France</div>
       <div style="margin-top:10px;">
-        <span class="tag blue">8 régions</span>
+        <span class="tag blue">4 régions</span>
         <span class="tag blue">5 graphiques</span>
         <span class="tag green">Comparatif</span>
       </div>
@@ -169,17 +169,46 @@
       </ul>
     </div>
     <div class="stats">
-      <div class="stat"><div class="stat-val">8</div><div class="stat-label">Régions</div></div>
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">Régions</div></div>
       <div class="stat"><div class="stat-val">5</div><div class="stat-label">Graphiques</div></div>
-      <div class="stat"><div class="stat-val">365</div><div class="stat-label">Jours</div></div>
+      <div class="stat"><div class="stat-val">2 000</div><div class="stat-label">Lignes</div></div>
     </div>
     <div class="card-footer">▶ Ouvrir le dashboard →</div>
+  </a>
+
+  <!-- Streamlit -->
+  <a class="card" href="http://localhost:8501" target="_blank">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Dashboard Streamlit</div>
+      <div class="card-subtitle">Application interactive multi-onglets</div>
+      <div style="margin-top:10px;">
+        <span class="tag blue">Interactif</span>
+        <span class="tag blue">6 onglets</span>
+        <span class="tag green">Prévisions Prophet</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="feature-list">
+        <li>Vue d'ensemble avec KPIs temps réel</li>
+        <li>Consommation, Météo × Énergie, Mix électrique</li>
+        <li>Qualité des données (gouvernance)</li>
+        <li>Prévisions 30 jours avec Prophet</li>
+        <li>Export CSV et alertes de seuil</li>
+      </ul>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">Régions</div></div>
+      <div class="stat"><div class="stat-val">6</div><div class="stat-label">Onglets</div></div>
+      <div class="stat"><div class="stat-val">30j</div><div class="stat-label">Prévision</div></div>
+    </div>
+    <div class="card-footer">▶ Ouvrir Streamlit →</div>
   </a>
 
 </div>
 
 <div class="footer">
-  Pipeline Data Énergétique · Sources : ODRE, Open-Meteo · Déployé sur AWS EC2 · Mise à jour quotidienne via GitHub Actions
+  Pipeline Data Énergétique · Sources : ODRE, Open-Meteo · Mise à jour quotidienne via GitLab CI/CD
 </div>
 
 </body>

@@ -42,7 +42,9 @@ data/governance/*
 !data/governance/.gitkeep
 
 # Output (dashboards générés)
-output/
+output/**
+!output/dashboards/
+!output/dashboards/index.html
 
 # Logs
 logs/
