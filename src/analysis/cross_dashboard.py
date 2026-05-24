@@ -102,7 +102,7 @@ class CrossDashboardBuilder:
         )
 
         fig.update_layout(
-            title="Consommation électrique vs Température — {self.region_label}",
+            title=f"Consommation électrique vs Température — {self.region_label}",
             template="plotly_white",
             hovermode="x unified",
             xaxis=dict(
@@ -163,7 +163,7 @@ class CrossDashboardBuilder:
         ))
 
         fig.update_layout(
-            title="Corrélation Température → Consommation — {self.region_label}",
+            title=f"Corrélation Température → Consommation — {self.region_label}",
             xaxis_title="Température (°C)",
             yaxis_title="Consommation (MW)",
             template="plotly_white",
