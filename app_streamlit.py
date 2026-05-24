@@ -278,12 +278,13 @@ with tab1:
             return round((current_val - prev_val) / abs(prev_val) * 100, 1)
         return None
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Ligne 1 — métriques électricité (3 colonnes, plus d'espace)
+    col1, col2, col3 = st.columns(3)
 
     if elec_col:
         mean_now = df[elec_col].mean()
         peak_now = df[elec_col].max()
-        min_now = df[elec_col].min()
+        min_now  = df[elec_col].min()
         mean_prev = df_prev[elec_col].mean() if not df_prev.empty else None
         peak_prev = df_prev[elec_col].max() if not df_prev.empty else None
 
@@ -291,24 +292,47 @@ with tab1:
         delta_peak = kpi_delta(peak_now, peak_prev)
 
         col1.metric(
-            "Consommation moyenne",
+            "Consommation moy.",
             f"{mean_now:,.0f} MW",
-            delta=f"{delta_mean:+.1f}% vs période préc." if delta_mean else None,
+            delta=f"{delta_mean:+.1f}% vs préc." if delta_mean else None,
             delta_color="inverse",
+            help="Consommation électrique moyenne sur la période",
         )
         col2.metric(
             "Pic de consommation",
             f"{peak_now:,.0f} MW",
-            delta=f"{delta_peak:+.1f}% vs période préc." if delta_peak else None,
+            delta=f"{delta_peak:+.1f}% vs préc." if delta_peak else None,
             delta_color="inverse",
+            help="Consommation maximale enregistrée sur la période",
         )
-        col3.metric("Minimum enregistré", f"{min_now:,.0f} MW")
+        col3.metric(
+            "Minimum",
+            f"{min_now:,.0f} MW",
+            help="Consommation minimale enregistrée sur la période",
+        )
+
+    st.markdown("")  # espace vertical
+
+    # Ligne 2 — gaz + compteurs (4 colonnes)
+    col4, col5, col6, col7 = st.columns(4)
 
     if "consommation_brute_gaz_totale" in df.columns:
         mean_gas = df["consommation_brute_gaz_totale"].mean()
-        col4.metric("Gaz moyen", f"{mean_gas:,.0f} MWh")
+        prev_gas = df_prev["consommation_brute_gaz_totale"].mean() if not df_prev.empty else None
+        delta_gas = kpi_delta(mean_gas, prev_gas)
+        col4.metric(
+            "Gaz moyen",
+            f"{mean_gas:,.0f} MWh",
+            delta=f"{delta_gas:+.1f}% vs préc." if delta_gas else None,
+            delta_color="inverse",
+        )
 
     col5.metric("Enregistrements", f"{len(df):,}")
+    col6.metric("Jours couverts", f"{df['date'].nunique() if 'date' in df.columns else '—'}")
+
+    if elec_col:
+        variation = df[elec_col].std() / df[elec_col].mean() * 100
+        col7.metric("Variabilité", f"{variation:.1f}%", help="Coefficient de variation (σ/μ)")
 
     # Score qualité
     st.markdown("---")
