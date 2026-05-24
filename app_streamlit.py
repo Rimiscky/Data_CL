@@ -370,11 +370,7 @@ with st.sidebar:
         url="http://localhost:8080",
         use_container_width=True,
     )
-    st.link_button(
-        "📊 Grafana",
-        url="http://localhost:3000",
-        use_container_width=True,
-    )
+
 
     st.markdown(
         "<div class='sb-footer'>Données : ODRE · RTE · Open-Meteo<br>"
