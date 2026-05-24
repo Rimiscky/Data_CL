@@ -364,6 +364,18 @@ with st.sidebar:
         use_container_width=True,
         disabled=_export_df.empty,
     )
+    st.markdown("<div class='sb-header'>Tableaux de bord</div>", unsafe_allow_html=True)
+    st.link_button(
+        "🌐 Dashboard HTML (EC2)",
+        url="http://13.39.99.56:8080/dashboards/",
+        use_container_width=True,
+    )
+    st.link_button(
+        "📊 Grafana (EC2)",
+        url="http://13.39.99.56:3000",
+        use_container_width=True,
+    )
+
     st.markdown(
         "<div class='sb-footer'>Données : ODRE · RTE · Open-Meteo<br>"
         "Mis à jour quotidiennement à 6h UTC</div>",
