@@ -1,0 +1,7 @@
+# Dépendances pour les scripts d'analyse avancée (forecasting, clustering)
+# NON incluses dans l'image Docker de production
+# Installation : pip install -r requirements-analysis.txt
+-r requirements.txt
+scikit-learn>=1.3.0
+statsmodels>=0.14.0
+prophet>=1.1.0

@@ -1,13 +1,142 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/user/application_security/sast/#available-cicd-variables
-# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure/
-# Dependency Scanning customization: https://docs.gitlab.com/user/application_security/dependency_scanning/#customizing-analyzer-behavior
-# Container Scanning customization: https://docs.gitlab.com/user/application_security/container_scanning/#customizing-analyzer-behavior
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ci/variables/#cicd-variable-precedence
+# ============================================================
+#  Pipeline CI/CD — Energy Data Pipeline
+#  Remplace les 3 workflows GitHub Actions
+# ============================================================
+
 stages:
-- test
-sast:
+  - test       # Tests unitaires + lint (runners GitLab partagés)
+  - deploy     # Build Docker + déploiement sur EC2 (runner self-hosted)
+  - pipeline   # Exécution manuelle du pipeline complet
+
+variables:
+  PYTHONPATH: "$CI_PROJECT_DIR"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .cache/pip/
+
+# ── Tests Python (3.11 et 3.12) ─────────────────────────────
+
+.test-base: &test-base
   stage: test
-include:
-- template: Security/SAST.gitlab-ci.yml
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt flake8
+  script:
+    - mkdir -p reports
+    - python -m pytest tests/ -v --tb=short
+        --junitxml=reports/test-results-$PYTHON_VERSION.xml
+  artifacts:
+    when: always
+    reports:
+      junit: reports/test-results-$PYTHON_VERSION.xml
+    expire_in: 7 days
+
+test:py311:
+  <<: *test-base
+  image: python:3.11-slim
+  variables:
+    PYTHON_VERSION: "3.11"
+
+test:py312:
+  <<: *test-base
+  image: python:3.12-slim
+  variables:
+    PYTHON_VERSION: "3.12"
+
+# ── Lint Flake8 ─────────────────────────────────────────────
+
+lint:flake8:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install flake8
+    - flake8 src/ scripts/
+        --max-line-length=120
+        --statistics
+        --count
+        --show-source
+        --exclude=__pycache__,*.pyc
+
+# ── Tests dans Docker ────────────────────────────────────────
+
+docker:test:
+  stage: test
+  needs: [test:py311, test:py312, lint:flake8]
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker build --target test -t pipeline-test .
+    - docker run --rm pipeline-test python -m pytest tests/ -v --tb=short
+
+# ── Deploy EC2 (runner self-hosted) ─────────────────────────
+
+deploy:ec2:
+  stage: deploy
+  tags:
+    - ec2
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - src/**/*
+        - scripts/**/*
+        - Dockerfile
+        - requirements.txt
+        - config/**/*
+        - airflow/**/*
+      when: on_success
+  script:
+    - echo "=== Build de l'image Docker ==="
+    - docker build --target production -t energy-pipeline:latest .
+    - echo "=== Lancement du pipeline ==="
+    - docker stop energy-pipeline || true
+    - docker rm energy-pipeline || true
+    - |
+      docker run \
+        --name energy-pipeline \
+        -e RTE_API_KEY="$RTE_API_KEY" \
+        -e AIRFLOW_SMTP_PASSWORD="$AIRFLOW_SMTP_PASSWORD" \
+        -v /home/ubuntu/data:/app/data \
+        -v /home/ubuntu/logs:/app/logs \
+        -v /home/ubuntu/output:/app/output \
+        energy-pipeline:latest \
+        python scripts/run_full_pipeline.py
+    - echo "=== Relance du serveur HTTP ==="
+    - pkill -f "http.server 8080" 2>/dev/null || true
+    - sleep 1
+    - mkdir -p /home/ubuntu/output/dashboards
+    - |
+      cd /home/ubuntu/output/dashboards && \
+      nohup python3 -m http.server 8080 > /tmp/server.log 2>&1 &
+    - echo "Serveur HTTP démarré sur le port 8080"
+
+# ── Pipeline manuel ──────────────────────────────────────────
+
+pipeline:manual:
+  stage: pipeline
+  image: python:3.12-slim
+  when: manual
+  variables:
+    MAX_RECORDS: "500"
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    - echo "=== Étape 1/3 — Ingestion (max $MAX_RECORDS enregistrements) ==="
+    - python scripts/ingest.py
+    - echo "=== Étape 2/3 — ETL ==="
+    - python scripts/run_etl.py
+    - echo "=== Étape 3/3 — Dashboard ==="
+    - python scripts/run_dashboard.py
+  artifacts:
+    name: "pipeline-$CI_PIPELINE_ID"
+    paths:
+      - data/warehouse/
+      - output/dashboards/
+      - logs/
+    expire_in: 30 days
