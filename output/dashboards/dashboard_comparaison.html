@@ -75,12 +75,66 @@
       .chart-row{grid-template-columns:1fr;}
       .filters-row{flex-direction:column;}
     }
+
+    /* ── Animations ────────────────────────────────── */
+    @keyframes fadeInUp{
+      from{opacity:0;transform:translateY(18px)}
+      to  {opacity:1;transform:translateY(0)}
+    }
+    @keyframes kpiBounce{
+      0%  {transform:scale(1)}
+      40% {transform:scale(1.07)}
+      100%{transform:scale(1)}
+    }
+    @keyframes vsPulse{
+      0%,100%{transform:scale(1)  ;opacity:1}
+      50%    {transform:scale(1.18);opacity:.75}
+    }
+
+    /* Chart cards: staggered fade-in au chargement */
+    .chart-card{animation:fadeInUp .45s cubic-bezier(.22,.68,0,1.2) both}
+    .chart-full:nth-child(1) .chart-card              {animation-delay:.05s}
+    .chart-row:nth-child(2)  .chart-card:nth-child(1) {animation-delay:.12s}
+    .chart-row:nth-child(2)  .chart-card:nth-child(2) {animation-delay:.20s}
+    .chart-row:nth-child(3)  .chart-card:nth-child(1) {animation-delay:.28s}
+    .chart-row:nth-child(3)  .chart-card:nth-child(2) {animation-delay:.36s}
+    .chart-full:nth-child(4) .chart-card              {animation-delay:.44s}
+
+    /* KPI cards hover */
+    .kpi-card{transition:transform .2s,box-shadow .2s}
+    .kpi-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.13)}
+    .kpi-val{display:inline-block;transition:color .25s}
+    .kpi-val.bounce{animation:kpiBounce .35s ease}
+
+    /* VS badge pulse lors de la comparaison */
+    .vs-badge.comparing{animation:vsPulse .55s ease 3}
+
+    /* Season/jour buttons */
+    .season-btn{transition:all .18s cubic-bezier(.4,0,.2,1)}
+    .season-btn:active{transform:scale(.88)}
+    .season-btn.active{box-shadow:0 2px 8px rgba(102,126,234,.35)}
+
+    /* Bouton Comparer */
+    .btn-apply{transition:opacity .18s,transform .12s}
+    .btn-apply:active{transform:scale(.97)}
+    .btn-apply.loading{opacity:.55;cursor:wait;pointer-events:none}
+
+    /* Charts shimmer pendant le recalcul */
+    .charts{transition:opacity .15s}
+    .charts.updating{opacity:.4}
+
+    /* Back button */
+    .back-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;
+              padding:7px 15px;font-size:.83em;cursor:pointer;text-decoration:none;
+              transition:background .2s;white-space:nowrap;flex-shrink:0}
+    .back-btn:hover{background:rgba(255,255,255,.28)}
   </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
+  <a href="index.html" class="back-btn">← Accueil</a>
+  <div style="flex:1">
     <h1>Comparaison Consommation Énergétique</h1>
     <p>Analyse comparative inter-régionale — France métropolitaine</p>
   </div>
@@ -285,6 +339,28 @@ function filterData(region) {
 function avg(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
 function max(arr){ return Math.max(...arr); }
 
+// ── Animated counter ──────────────────────────────────────────────────────
+const _kpiPrev = {};
+function animCount(el, toVal, dur=520) {
+  const id = el.id;
+  const from = _kpiPrev[id] || 0;
+  _kpiPrev[id] = toVal;
+  if (isNaN(toVal) || toVal === null) { el.textContent = '—'; return; }
+  const start = performance.now();
+  function tick(now) {
+    const t    = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - t, 3);       // easeOutCubic
+    el.textContent = Math.round(from + (toVal - from) * ease).toLocaleString('fr-FR');
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      el.classList.remove('bounce');
+      void el.offsetWidth;
+      el.classList.add('bounce');
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
 function applyFilters() {
   const rA = document.getElementById('sel_a').value;
   const rB = document.getElementById('sel_b').value;
@@ -299,17 +375,45 @@ function applyFilters() {
   const avgA = avg(consoA), avgB = avg(consoB);
   const diff = avgA - avgB;
 
-  // KPIs
-  document.getElementById('kpi_avg_a').textContent = fmt(avgA);
-  document.getElementById('kpi_avg_b').textContent = fmt(avgB);
-  document.getElementById('kpi_max_a').textContent = fmt(max(consoA));
-  document.getElementById('kpi_max_b').textContent = fmt(max(consoB));
+  // VS badge pulse
+  const vsBadge = document.querySelector('.vs-badge');
+  vsBadge.classList.remove('comparing');
+  void vsBadge.offsetWidth;
+  vsBadge.classList.add('comparing');
+
+  // Bouton loading
+  const btn = document.querySelector('.btn-apply');
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Calcul...';
+
+  // Shimmer charts
+  document.querySelector('.charts').classList.add('updating');
+
+  // KPIs animés
+  animCount(document.getElementById('kpi_avg_a'), avgA);
+  animCount(document.getElementById('kpi_avg_b'), avgB);
+  animCount(document.getElementById('kpi_max_a'), max(consoA));
+  animCount(document.getElementById('kpi_max_b'), max(consoB));
+  animCount(document.getElementById('kpi_jours'), dA.length);
   document.getElementById('kpi_name_a').textContent = rA;
   document.getElementById('kpi_name_b').textContent = rB;
-  document.getElementById('kpi_jours').textContent = dA.length + " j";
 
   const diffEl = document.getElementById('kpi_diff');
-  diffEl.textContent = (diff>=0?'+':'')+fmt(diff)+' MW';
+  const prevDiff = _kpiPrev['kpi_diff'] || 0;
+  _kpiPrev['kpi_diff'] = diff;
+  const start = performance.now();
+  (function tickDiff(now) {
+    const t = Math.min((now - start) / 520, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const v = prevDiff + (diff - prevDiff) * ease;
+    diffEl.textContent = (v>=0?'+':'')+Math.round(Math.abs(v)).toLocaleString('fr-FR')+' MW';
+    if (t < 1) requestAnimationFrame(tickDiff);
+    else {
+      diffEl.classList.remove('bounce');
+      void diffEl.offsetWidth;
+      diffEl.classList.add('bounce');
+    }
+  })(start);
   diffEl.className = 'kpi-val ' + (diff>=0?'blue':'red');
 
   const colA = COLORS[rA]||'#1f77b4';
@@ -429,6 +533,13 @@ function applyFilters() {
     plot_bgcolor:'white', paper_bgcolor:'white',
     legend:{orientation:'h',y:-0.25}
   }, {responsive:true});
+
+  // Retirer shimmer + reset bouton après rendu
+  requestAnimationFrame(() => {
+    document.querySelector('.charts').classList.remove('updating');
+    btn.classList.remove('loading');
+    btn.textContent = '▶ Comparer';
+  });
 }
 
 // Auto-load on start
