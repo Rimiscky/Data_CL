@@ -156,6 +156,23 @@ def detect_elec_col(df: pd.DataFrame) -> Optional[str]:
     return None
 
 
+PLOTLY_CONFIG = {
+    "toImageButtonOptions": {"format": "png", "scale": 2},
+    "displaylogo": False,
+    "modeBarButtonsToAdd": ["downloadImage"],
+}
+
+
+def pchart(fig: go.Figure, key: str = "", **kwargs) -> None:
+    """Wrapper st.plotly_chart avec config PNG systématique."""
+    cfg = {**PLOTLY_CONFIG, "toImageButtonOptions": {**PLOTLY_CONFIG["toImageButtonOptions"], "filename": key or "energie_france"}}
+    st.plotly_chart(fig, use_container_width=True, config=cfg, **kwargs)
+
+
+def df_to_csv(df: pd.DataFrame) -> bytes:
+    return df.to_csv(index=False).encode("utf-8")
+
+
 def available_regions() -> list[str]:
     """Retourne les régions qui ont un fichier latest.csv dans le warehouse."""
     return [
@@ -221,6 +238,25 @@ with st.sidebar:
         date_start = st.date_input("Début", _data_max - timedelta(days=30))
         date_end = st.date_input("Fin", _data_max)
 
+    st.markdown("---")
+    st.markdown("**Exporter**")
+    # Le bouton est rendu ici mais df n'est pas encore filtré — on utilise _df_probe
+    # et on refiltre inline pour éviter de déplacer le chargement principal.
+    _export_df = _df_probe.copy() if _df_probe is not None else pd.DataFrame()
+    if not _export_df.empty:
+        _mask = (
+            (_export_df["datetime"].dt.date >= date_start)
+            & (_export_df["datetime"].dt.date <= date_end)
+        )
+        _export_df = _export_df[_mask]
+    st.download_button(
+        label="Télécharger les données (CSV)",
+        data=df_to_csv(_export_df) if not _export_df.empty else b"",
+        file_name=f"energie_{selected_region}_{date_start}_{date_end}.csv",
+        mime="text/csv",
+        use_container_width=True,
+        disabled=_export_df.empty,
+    )
     st.markdown("---")
     st.markdown(
         "<small style='color:#888'>Données : ODRE · RTE · Open-Meteo<br>"
@@ -433,7 +469,7 @@ with tab2:
                 xaxis=dict(dtick=2), hovermode="x unified",
                 margin=dict(t=10, b=40), legend=dict(orientation="h", y=1.05),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            pchart(fig, key="profil_horaire")
         else:
             st.info("Colonne 'hour' absente.")
 
@@ -459,7 +495,7 @@ with tab2:
                 yaxis_title="MW moyen", showlegend=False,
                 margin=dict(t=10, b=40),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            pchart(fig, key="profil_semaine")
         else:
             st.info("Colonne 'day_of_week' absente.")
 
@@ -486,7 +522,7 @@ with tab2:
         )
         fig.update_yaxes(title_text="Total (MW)", row=1, col=1)
         fig.update_yaxes(title_text="Pic (MW)", row=2, col=1)
-        st.plotly_chart(fig, use_container_width=True)
+        pchart(fig, key="consommation_journaliere")
 
     # Heatmap
     st.markdown("**Heatmap consommation (Jour × Heure)**")
@@ -505,7 +541,7 @@ with tab2:
             xaxis_title="Heure", yaxis_title="Date",
             margin=dict(t=10, b=40),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        pchart(fig, key="heatmap_conso")
 
     # Anomalies
     st.markdown("**Détection d'anomalies (z-score)**")
@@ -532,7 +568,7 @@ with tab2:
             hovermode="x unified", margin=dict(t=10, b=40),
             xaxis_title="Date/Heure", yaxis_title="MW",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        pchart(fig, key="anomalies")
         if not anomalies.empty:
             st.caption(f"{len(anomalies)} anomalie(s) détectée(s) sur {len(df)} enregistrements.")
 
@@ -581,7 +617,7 @@ with tab3:
             st.markdown("**Consommation électrique vs Température**")
             fig_et = builder.build_energy_vs_temperature()
             fig_et.update_layout(height=380, margin=dict(t=20, b=40))
-            st.plotly_chart(fig_et, use_container_width=True)
+            pchart(fig_et, key="meteo_energie_temp")
 
             # ── Graphiques 2 + 3 côte à côte ────────────────────────────────
             col_sc, col_bar = st.columns(2)
@@ -590,19 +626,19 @@ with tab3:
                 st.markdown("**Scatter : Température → Consommation**")
                 fig_sc = builder.build_scatter_temp_consumption()
                 fig_sc.update_layout(height=380, margin=dict(t=20, b=40))
-                st.plotly_chart(fig_sc, use_container_width=True)
+                pchart(fig_sc, key="scatter_temp_conso")
 
             with col_bar:
                 st.markdown("**Impact par catégorie de température**")
                 fig_wb = builder.build_weather_impact_bars()
                 fig_wb.update_layout(height=380, margin=dict(t=20, b=40))
-                st.plotly_chart(fig_wb, use_container_width=True)
+                pchart(fig_wb, key="impact_temperature")
 
             # ── Graphique 4 : matrice de corrélation ─────────────────────────
             st.markdown("**Matrice de corrélation — Énergie × Variables météo**")
             fig_hm = builder.build_multivar_heatmap()
             fig_hm.update_layout(height=460, margin=dict(t=20, b=40))
-            st.plotly_chart(fig_hm, use_container_width=True)
+            pchart(fig_hm, key="correlation_meteo")
 
             # ── Graphique 5 : vent + pluie ────────────────────────────────────
             wind_ok = "wind_category" in df_mx.columns
@@ -611,13 +647,13 @@ with tab3:
                 st.markdown("**Impact vent & précipitations sur la consommation**")
                 fig_wr = builder.build_wind_rain_analysis()
                 fig_wr.update_layout(height=320, margin=dict(t=20, b=40))
-                st.plotly_chart(fig_wr, use_container_width=True)
+                pchart(fig_wr, key="impact_vent_pluie")
 
             # ── Graphique 6 : vue journalière ─────────────────────────────────
             st.markdown("**Vue journalière — Consommation & Météo**")
             fig_do = builder.build_daily_overview()
             fig_do.update_layout(height=480, margin=dict(t=20, b=40))
-            st.plotly_chart(fig_do, use_container_width=True)
+            pchart(fig_do, key="vue_journaliere_meteo")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — Mix de production RTE
@@ -680,7 +716,7 @@ with tab4:  # Mix de production
                     annotations=[dict(text="Mix<br>RTE", x=0.5, y=0.5, font_size=14, showarrow=False)],
                     margin=dict(t=10, b=10),
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                pchart(fig, key="mix_rte_donut")
 
             with col_bar:
                 st.markdown("**Détail par filière**")
@@ -699,7 +735,7 @@ with tab4:  # Mix de production
                     xaxis_title="MW·h", yaxis=dict(autorange="reversed"),
                     margin=dict(t=10, b=40, r=80),
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                pchart(fig, key="mix_rte_barres")
 
             # Part renouvelable
             renouvelable = ["Éolien", "Solaire", "Hydraulique", "Bioénergie"]
@@ -751,7 +787,7 @@ with tab5:
                 number={"suffix": "%"},
             ))
             fig.update_layout(height=280, margin=dict(t=30, b=0))
-            st.plotly_chart(fig, use_container_width=True)
+            pchart(fig, key="qualite_score")
 
         with col_info:
             st.markdown(f"**Dataset :** `{gov.get('dataset_name', '—')}`")
@@ -908,7 +944,7 @@ with tab6:
                 ]),
             ),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        pchart(fig, key="previsions_prophet")
 
         # ── Résumé journalier des prévisions ─────────────────────────────────
         st.markdown("**Synthèse journalière des prévisions**")
@@ -929,6 +965,12 @@ with tab6:
             daily_fc_display[col_name] = daily_fc_display[col_name].round(0).astype(int)
 
         st.dataframe(daily_fc_display, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="Télécharger les prévisions (CSV)",
+            data=df_to_csv(daily_fc_display),
+            file_name=f"previsions_{selected_region}_J{horizon_days}.csv",
+            mime="text/csv",
+        )
 
         # ── Profil horaire moyen prévu ────────────────────────────────────────
         st.markdown(f"**Profil horaire moyen prévu (sur {horizon_days} jours)**")
@@ -968,7 +1010,7 @@ with tab6:
             margin=dict(t=10, b=40),
             legend=dict(orientation="h", y=1.05),
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        pchart(fig2, key="previsions_profil_horaire")
 
         st.caption(
             f"Modèle Prophet J+{horizon_days} · saisonnalités journalière, hebdomadaire et annuelle. "
