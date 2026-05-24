@@ -239,6 +239,16 @@ with st.sidebar:
         date_end = st.date_input("Fin", _data_max)
 
     st.markdown("---")
+    st.markdown("**Alerte consommation**")
+    alert_threshold = st.number_input(
+        "Seuil (MW) — 0 = désactivé",
+        min_value=0,
+        value=0,
+        step=500,
+        help="Affiche une ligne rouge sur les graphiques et un avertissement si la consommation dépasse ce seuil.",
+    )
+
+    st.markdown("---")
     st.markdown("**Exporter**")
     # Le bouton est rendu ici mais df n'est pas encore filtré — on utilise _df_probe
     # et on refiltre inline pour éviter de déplacer le chargement principal.
@@ -283,6 +293,20 @@ elec_col = detect_elec_col(df)
 if df.empty:
     st.warning("Aucune donnée sur la période sélectionnée. Essayez une plage plus large.")
     st.stop()
+
+# ── Bannière alerte seuil ──────────────────────────────────────────────────────
+
+if alert_threshold > 0 and elec_col:
+    peaks_above = df[df[elec_col] > alert_threshold]
+    if not peaks_above.empty:
+        peak_max = peaks_above[elec_col].max()
+        pct = len(peaks_above) / len(df) * 100
+        st.warning(
+            f"**{len(peaks_above):,} relevés ({pct:.1f}%) dépassent le seuil de {alert_threshold:,} MW** "
+            f"— pic max enregistré : **{peak_max:,.0f} MW**"
+        )
+    else:
+        st.success(f"Aucun relevé ne dépasse le seuil de {alert_threshold:,} MW sur la période.")
 
 # ── Onglets ────────────────────────────────────────────────────────────────────
 
@@ -426,7 +450,15 @@ with tab1:
                 rangeslider=dict(visible=False),
             ),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        if alert_threshold > 0:
+            fig.add_hline(
+                y=alert_threshold,
+                line=dict(color="red", width=2, dash="dash"),
+                annotation_text=f"Seuil {alert_threshold:,} MW",
+                annotation_position="top left",
+                annotation=dict(font=dict(color="red", size=12)),
+            )
+        pchart(fig, key="serie_temporelle_overview")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Consommation
@@ -469,6 +501,14 @@ with tab2:
                 xaxis=dict(dtick=2), hovermode="x unified",
                 margin=dict(t=10, b=40), legend=dict(orientation="h", y=1.05),
             )
+            if alert_threshold > 0:
+                fig.add_hline(
+                    y=alert_threshold,
+                    line=dict(color="red", width=2, dash="dash"),
+                    annotation_text=f"Seuil {alert_threshold:,} MW",
+                    annotation_position="top left",
+                    annotation=dict(font=dict(color="red", size=11)),
+                )
             pchart(fig, key="profil_horaire")
         else:
             st.info("Colonne 'hour' absente.")
@@ -522,6 +562,15 @@ with tab2:
         )
         fig.update_yaxes(title_text="Total (MW)", row=1, col=1)
         fig.update_yaxes(title_text="Pic (MW)", row=2, col=1)
+        if alert_threshold > 0:
+            fig.add_hline(
+                y=alert_threshold,
+                row=2, col=1,
+                line=dict(color="red", width=2, dash="dash"),
+                annotation_text=f"Seuil {alert_threshold:,} MW",
+                annotation_position="top left",
+                annotation=dict(font=dict(color="red", size=11)),
+            )
         pchart(fig, key="consommation_journaliere")
 
     # Heatmap
