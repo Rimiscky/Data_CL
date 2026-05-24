@@ -90,18 +90,18 @@ Le DAG Airflow `energy_pipeline_multi_sources` s'exécute tous les jours à 6h U
 
 ## Déploiement (CI/CD)
 
-### CI — GitHub Actions (`ci.yml`)
-À chaque pull request : lint (ruff), tests unitaires, vérification des imports.
+### CI — GitLab CI (`test` stage)
+À chaque push : lint (flake8), tests unitaires Python 3.11 + 3.12, tests Docker.
 
-### CD — GitHub Actions (`cd.yml`)
-À chaque merge sur `main` :
-1. Build de l'image Docker et push vers GitHub Container Registry (`ghcr.io/rimiscky/data_cl`)
-2. Déploiement automatique sur EC2 via un **runner self-hosted** installé sur l'instance
+### CD — GitLab CI (`deploy` stage)
+À chaque merge sur `main` (hors `.md` et `docs/`) :
+1. Build de l'image Docker directement sur EC2
+2. Déploiement via le **runner self-hosted** (`ec2`) installé sur l'instance
 3. Lancement du conteneur avec le pipeline complet
 4. Redémarrage du serveur HTTP sur le port 8080
 
 ```
-git push → CI (lint + tests) → Build Docker → Push GHCR → Deploy EC2 → Dashboard mis à jour
+git push → CI (lint + tests + docker) → Deploy EC2 → Dashboard mis à jour
 ```
 
 ---
@@ -146,10 +146,9 @@ Entrepôt (data/warehouse/)
 | Visualisation | Plotly (HTML) + Grafana 10 |
 | Supervision | Prometheus 2.48 |
 | Conteneurisation | Docker + Docker Compose |
-| CI/CD | GitHub Actions + runner self-hosted EC2 |
-| Registry | GitHub Container Registry (GHCR) |
+| CI/CD | GitLab CI/CD + runner self-hosted EC2 |
 | Langage | Python 3.11 |
-| Analyse | pandas, scikit-learn, statsmodels, prophet |
+| Analyse | pandas, scikit-learn, statsmodels, prophet (voir `requirements-analysis.txt`) |
 
 ---
 
@@ -267,7 +266,7 @@ Mot de passe: airflow
 | `AIRFLOW_SMTP_PASSWORD` | App Password Gmail pour les alertes e-mail |
 | `DATABASE_URL` | URL PostgreSQL (défaut : `postgresql://airflow:airflow@postgres:5432/energy_db`) |
 
-Les secrets de production sont stockés dans **GitHub Actions Secrets** et injectés automatiquement lors du déploiement CD.
+Les secrets de production sont stockés dans **GitLab CI/CD Variables** (`Settings → CI/CD → Variables`) et injectés automatiquement lors du déploiement CD.
 
 ---
 
