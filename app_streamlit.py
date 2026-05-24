@@ -70,6 +70,37 @@ h3 { font-weight: 700; margin-bottom: 0.25rem; }
 .rule-ok      { border-color: #2ca02c; }
 .rule-warning { border-color: #ff7f0e; }
 .rule-error   { border-color: #d62728; }
+
+/* ── Sidebar compacte ──────────────────────────────────────── */
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1.2rem;
+}
+/* En-têtes de section sidebar */
+.sb-header {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    opacity: 0.5;
+    margin: 18px 0 4px 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(128,128,128,0.2);
+}
+/* Resserrer les radio buttons */
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.9rem;
+}
+/* Footer sidebar */
+.sb-footer {
+    font-size: 0.72rem;
+    opacity: 0.45;
+    line-height: 1.6;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(128,128,128,0.2);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -254,7 +285,6 @@ def available_regions() -> list[str]:
 
 with st.sidebar:
     st.markdown("## ⚡ Énergie France")
-    st.markdown("---")
 
     regions_ok = available_regions()
     all_regions = list(REGION_LABELS.keys())
@@ -262,11 +292,13 @@ with st.sidebar:
     def format_region(k: str) -> str:
         return REGION_LABELS[k] if k in regions_ok else f"{REGION_LABELS[k]} (données manquantes)"
 
+    st.markdown("<div class='sb-header'>Région</div>", unsafe_allow_html=True)
     selected_region = st.selectbox(
         "Région",
         options=all_regions,
         format_func=format_region,
         index=0,
+        label_visibility="collapsed",
     )
 
     if selected_region not in regions_ok:
@@ -285,7 +317,7 @@ with st.sidebar:
         _data_max = date.today()
         _data_min = date.today() - timedelta(days=30)
 
-    st.markdown("**Période**")
+    st.markdown("<div class='sb-header'>Période</div>", unsafe_allow_html=True)
     period_preset = st.radio(
         "Période",
         ["7 jours", "30 jours", "90 jours", "Tout", "Personnalisée"],
@@ -307,8 +339,7 @@ with st.sidebar:
         date_start = st.date_input("Début", _data_max - timedelta(days=30))
         date_end = st.date_input("Fin", _data_max)
 
-    st.markdown("---")
-    st.markdown("**Alerte consommation**")
+    st.markdown("<div class='sb-header'>Alerte consommation</div>", unsafe_allow_html=True)
     alert_threshold = st.number_input(
         "Seuil (MW) — 0 = désactivé",
         min_value=0,
@@ -317,10 +348,7 @@ with st.sidebar:
         help="Affiche une ligne rouge sur les graphiques et un avertissement si la consommation dépasse ce seuil.",
     )
 
-    st.markdown("---")
-    st.markdown("**Exporter**")
-    # Le bouton est rendu ici mais df n'est pas encore filtré — on utilise _df_probe
-    # et on refiltre inline pour éviter de déplacer le chargement principal.
+    st.markdown("<div class='sb-header'>Exporter</div>", unsafe_allow_html=True)
     _export_df = _df_probe.copy() if _df_probe is not None else pd.DataFrame()
     if not _export_df.empty:
         _mask = (
@@ -329,17 +357,16 @@ with st.sidebar:
         )
         _export_df = _export_df[_mask]
     st.download_button(
-        label="Télécharger les données (CSV)",
+        label="⬇ Télécharger les données (CSV)",
         data=df_to_csv(_export_df) if not _export_df.empty else b"",
         file_name=f"energie_{selected_region}_{date_start}_{date_end}.csv",
         mime="text/csv",
         use_container_width=True,
         disabled=_export_df.empty,
     )
-    st.markdown("---")
     st.markdown(
-        "<small style='color:#888'>Données : ODRE · RTE · Open-Meteo<br>"
-        "Mis à jour quotidiennement à 6h UTC</small>",
+        "<div class='sb-footer'>Données : ODRE · RTE · Open-Meteo<br>"
+        "Mis à jour quotidiennement à 6h UTC</div>",
         unsafe_allow_html=True,
     )
 
