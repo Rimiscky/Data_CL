@@ -53,8 +53,9 @@ Transformation en chaîne :
 
 ### Étape 3 — Tableaux de bord (`scripts/run_dashboard.py`)
 Génération de tableaux de bord HTML interactifs avec Plotly :
-- `output/dashboards/dashboard_energy_idf.html` — dashboard par région (filtres JS client-side)
-- `output/dashboards/dashboard_comparaison.html` — comparaison inter-régionale
+- `output/dashboards/dashboard_energy_idf.html` — dashboard régional (9 graphiques, filtres JS client-side)
+- `output/dashboards/dashboard_comparaison.html` — comparaison inter-régionale (4 régions, fichier statique)
+- `output/dashboards/dashboard_cross_energy_meteo.html` — corrélation énergie × météo
 - `output/dashboards/index.html` — page d'accueil des tableaux de bord
 
 ### Étape 4 — Gouvernance (`scripts/run_governance.py`)
@@ -221,7 +222,7 @@ streamlit run app_streamlit.py
 
 ## Tableaux de bord HTML
 
-Trois fichiers HTML autonomes générés dans `output/dashboards/` :
+Quatre fichiers HTML autonomes générés dans `output/dashboards/` :
 
 ### `dashboard_energy_idf.html` — Tableau de bord régional
 - Données brutes embarquées en JSON (`window.D`)
@@ -235,8 +236,13 @@ Trois fichiers HTML autonomes générés dans `output/dashboards/` :
 - Graphiques : séries temporelles, radar, histogrammes
 - KPIs animés, badge VS pulsant, bouton de comparaison avec état de chargement
 
+### `dashboard_cross_energy_meteo.html` — Corrélation énergie × météo
+- Analyse croisée consommation électrique et données météorologiques
+- Corrélations température / humidité / vent × consommation
+- Vue multi-régions
+
 ### `index.html` — Page d'accueil
-- Liens vers les deux dashboards et l'application Streamlit
+- Liens vers les trois dashboards et l'application Streamlit
 - Badge ODRE · GitLab CI/CD
 
 ```bash
@@ -273,8 +279,9 @@ Data_CL/
 ├── output/
 │   └── dashboards/                    # Tableaux de bord HTML
 │       ├── index.html                 # Page d'accueil (suivi par git)
-│       ├── dashboard_energy_idf.html  # Dashboard régional (généré)
-│       └── dashboard_comparaison.html # Comparaison inter-régionale (généré)
+│       ├── dashboard_energy_idf.html         # Dashboard régional — 9 graphiques (généré)
+│       ├── dashboard_comparaison.html        # Comparaison inter-régionale (statique)
+│       └── dashboard_cross_energy_meteo.html # Corrélation énergie × météo (généré)
 ├── scripts/
 │   ├── ingest.py                      # Ingestion multi-sources
 │   ├── run_etl.py                     # Transformation ETL
@@ -304,7 +311,7 @@ Data_CL/
     │   └── prometheus_exporter.py     # Export métriques Prometheus
     ├── analysis/
     │   ├── dashboard.py               # Génération HTML (filtres JS + animations)
-    │   ├── cross_dashboard.py         # Dashboard comparaison inter-régionale
+    │   ├── cross_dashboard.py         # Dashboard corrélation énergie × météo (généré)
     │   ├── correlation_analysis.py    # Corrélation température × consommation
     │   ├── clustering.py              # Clustering K-means régional
     │   └── forecasting.py             # Prévision ARIMA + Prophet
