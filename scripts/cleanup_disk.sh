@@ -35,7 +35,7 @@ disk_free() { df -h / | awk 'NR==2 {print $4 " libres (" $5 " utilisé)"}'; }
 
 # ── Début ──────────────────────────────────────────────────
 log "============================================"
-log "Nettoyage disque démarré${DRY_RUN:+ (dry-run)}"
+log "Nettoyage disque démarré$( [[ "$DRY_RUN" == "true" ]] && echo ' (dry-run)' )"
 log "Espace avant : $(disk_free)"
 log "============================================"
 
