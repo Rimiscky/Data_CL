@@ -45,6 +45,8 @@ data/governance/*
 output/**
 !output/dashboards/
 !output/dashboards/index.html
+!output/presentation/
+!output/presentation/index.html
 
 # Logs
 logs/
