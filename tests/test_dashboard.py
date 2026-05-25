@@ -95,16 +95,16 @@ class TestDashboardBuilder:
 
         content = html_path.read_text(encoding="utf-8")
         assert "Île-de-France" in content
-        assert "Plotly" in content
-        assert "chart_0" in content
+        assert "plotly-2.27.0" in content
+        assert "c-ts" in content
 
     def test_export_html_builds_if_empty(self, analyzer, tmp_path):
         db = DashboardBuilder(analyzer, output_dir=tmp_path)
-        # Sans appeler build_all() d'abord
+        # Sans appeler build_all() d'abord — le HTML est généré depuis les données brutes
         html_path = db.export_html()
 
         assert html_path.exists()
-        assert len(db._figures) == 6
+        assert html_path.stat().st_size > 0
 
     def test_empty_figure(self, analyzer, tmp_path):
         db = DashboardBuilder(analyzer, output_dir=tmp_path)
