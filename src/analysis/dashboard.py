@@ -634,13 +634,19 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
 <div id="charts-wrap" class="charts">
   <!-- Série temporelle -->
   <div class="chart-full"><div class="cc"><div id="c-ts"></div></div></div>
+  <!-- Profil 24h par saison -->
+  <div class="chart-full"><div class="cc"><div id="c-season"></div></div></div>
   <!-- Profil horaire + Jour de semaine -->
   <div class="chart-row">
     <div class="cc"><div id="c-hour"></div></div>
     <div class="cc"><div id="c-dow"></div></div>
   </div>
+  <!-- Box plots consommation par heure -->
+  <div class="chart-full"><div class="cc"><div id="c-boxhour"></div></div></div>
   <!-- Heatmap Jour×Heure -->
   <div class="chart-full"><div class="cc"><div id="c-heat"></div></div></div>
+  <!-- Heatmap calendrier Date×Heure -->
+  <div class="chart-full"><div class="cc"><div id="c-calheat"></div></div></div>
   <!-- Semaine vs Weekend + Distribution -->
   <div class="chart-row">
     <div class="cc"><div id="c-cmp"></div></div>
@@ -815,6 +821,97 @@ function chartHeat(F) {
   }], layout, CFG);
 }
 
+// ── Chart: Profil 24h par saison ──────────────────────────────────────────
+const SEASON_COLORS = {Printemps:'#4CAF50', Été:'#FF9800', Automne:'#8B4513', Hiver:'#2196F3'};
+const SEASON_ORDER  = ['Printemps','Été','Automne','Hiver'];
+function chartSeasonProfile(F) {
+  const bySH = {};
+  F.filter(d=>d.elec!==null).forEach(d => {
+    const s = SEASON(d.mo);
+    if (!bySH[s]) bySH[s] = {};
+    (bySH[s][d.h] = bySH[s][d.h]||[]).push(d.elec);
+  });
+  const hours = Array.from({length:24},(_,i)=>i);
+  const traces = SEASON_ORDER
+    .filter(s => bySH[s] && Object.keys(bySH[s]).length)
+    .map(s => ({
+      x: hours,
+      y: hours.map(h => mean(bySH[s][h]||[])),
+      mode:'lines+markers', name:s,
+      line:{color:SEASON_COLORS[s], width:2.5}, marker:{size:5},
+      hovertemplate: s+' %{x}h : %{y:.0f} MW<extra></extra>'
+    }));
+  const layout = Object.assign({}, LAY, {
+    title:'Profil de charge journalier moyen par saison', height:320,
+    xaxis:{title:'Heure', dtick:2}, yaxis:{title:'MW moyen'},
+    hovermode:'x unified', showlegend:true,
+    legend:{orientation:'h', y:-0.18}
+  });
+  Plotly.react('c-season', traces.length ? traces : [], layout, CFG);
+}
+
+// ── Chart: Box plots consommation par heure ────────────────────────────────
+function quartiles(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a,b)=>a-b), n=s.length;
+  const q1 = s[Math.floor(n*0.25)], q3 = s[Math.floor(n*0.75)];
+  const med = n%2 ? s[Math.floor(n/2)] : (s[n/2-1]+s[n/2])/2;
+  const iqr = q3-q1;
+  const lo  = s.find(v=>v>=q1-1.5*iqr)??s[0];
+  const hi  = [...s].reverse().find(v=>v<=q3+1.5*iqr)??s[n-1];
+  return {q1, med, q3, lo, hi, avg:mean(arr)};
+}
+function chartBoxHour(F) {
+  const byH = {};
+  F.filter(d=>d.elec!==null).forEach(d => { (byH[d.h]=byH[d.h]||[]).push(d.elec); });
+  const hours = Array.from({length:24},(_,i)=>i);
+  const stats  = hours.map(h => quartiles(byH[h]||[]));
+  const layout = Object.assign({}, LAY, {
+    title:'Distribution de la consommation par heure (boîtes à moustaches)', height:340,
+    xaxis:{title:'Heure', dtick:2}, yaxis:{title:'MW'}, showlegend:false
+  });
+  Plotly.react('c-boxhour', [{
+    type:'box', x:hours,
+    lowerfence: stats.map(s=>s?s.lo:null),
+    q1:         stats.map(s=>s?s.q1:null),
+    median:     stats.map(s=>s?s.med:null),
+    q3:         stats.map(s=>s?s.q3:null),
+    upperfence: stats.map(s=>s?s.hi:null),
+    mean:       stats.map(s=>s?s.avg:null),
+    boxmean: true,
+    marker:{color:C_BLUE, opacity:.7},
+    line:{color:C_BLUE},
+    hovertemplate:'%{x}h — Médiane: %{median:.0f} MW<br>Q1: %{q1:.0f} · Q3: %{q3:.0f}<extra></extra>'
+  }], layout, CFG);
+}
+
+// ── Chart: Heatmap calendrier Date × Heure ────────────────────────────────
+function chartCalHeat(F) {
+  const byDH = {};
+  F.filter(d=>d.elec!==null).forEach(d => {
+    if (!byDH[d.date]) byDH[d.date] = {};
+    (byDH[d.date][d.h] = byDH[d.date][d.h]||[]).push(d.elec);
+  });
+  const dates = Object.keys(byDH).sort();
+  const hours = Array.from({length:24},(_,i)=>i);
+  const z = dates.map(dt => hours.map(h => {
+    const v = byDH[dt][h]; return v?.length ? Math.round(mean(v)) : null;
+  }));
+  const layout = Object.assign({}, LAY, {
+    title:'Heatmap calendrier — Date × Heure (MW moyen)',
+    height: Math.max(320, dates.length*22+120),
+    xaxis:{title:'Heure', dtick:2,
+           tickvals:[0,2,4,6,8,10,12,14,16,18,20,22],
+           ticktext:['0h','2h','4h','6h','8h','10h','12h','14h','16h','18h','20h','22h']},
+    yaxis:{title:'', autorange:'reversed'}
+  });
+  Plotly.react('c-calheat', [{
+    z, x:hours, y:dates, type:'heatmap', colorscale:'Viridis',
+    colorbar:{title:'MW'},
+    hovertemplate:'%{y} %{x}h<br>%{z:.0f} MW<extra></extra>'
+  }], layout, CFG);
+}
+
 // ── Chart: Semaine vs Weekend ──────────────────────────────────────────────
 function chartCmp(F) {
   const sem = F.filter(d=>!d.we&&d.elec!==null).map(d=>d.elec);
@@ -870,8 +967,8 @@ function updateAll() {
   // Brief shimmer while Plotly recalculates
   cw.classList.add('updating');
   requestAnimationFrame(() => {
-    chartTS(F); chartHour(F); chartDow(F);
-    chartHeat(F); chartCmp(F); chartHist(F);
+    chartTS(F); chartSeasonProfile(F); chartHour(F); chartDow(F);
+    chartBoxHour(F); chartHeat(F); chartCalHeat(F); chartCmp(F); chartHist(F);
     requestAnimationFrame(() => cw.classList.remove('updating'));
   });
 }
