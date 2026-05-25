@@ -5,6 +5,7 @@ Gère les retries, timeouts et la sérialisation des réponses.
 import time
 from typing import Any, Optional
 
+
 import requests
 
 from src.utils.logger import get_logger
