@@ -1,1240 +1,1812 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pipeline de Données Énergétiques — France</title>
-<style>
-/* ── Reset & Base ──────────────────────────────────────────── */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline de Données Énergétiques — France</title>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-:root {
-  --blue:    #3b82f6;
-  --blue-d:  #1d4ed8;
-  --cyan:    #06b6d4;
-  --green:   #10b981;
-  --purple:  #8b5cf6;
-  --orange:  #f59e0b;
-  --red:     #ef4444;
-  --dark:    #0f172a;
-  --dark2:   #1e293b;
-  --dark3:   #334155;
-  --muted:   #64748b;
-  --text:    #e2e8f0;
-  --white:   #f8fafc;
-}
+    :root {
+      --blue: #3b82f6;
+      --blue-d: #1d4ed8;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --purple: #8b5cf6;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --dark: #0f172a;
+      --dark2: #1e293b;
+      --dark3: #334155;
+      --muted: #64748b;
+      --text: #e2e8f0;
+      --white: #f8fafc;
+    }
 
-html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark); color: var(--text); }
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+    }
 
-/* ── Deck ──────────────────────────────────────────────────── */
-.deck { width: 100vw; height: 100vh; position: relative; }
+    /* ── Deck ──────────────────────────────────────────────────── */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
 
-.slide {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: 60px 80px;
-  opacity: 0; transform: translateX(60px);
-  transition: opacity .45s ease, transform .45s ease;
-  pointer-events: none;
-}
-.slide.active   { opacity: 1; transform: translateX(0); pointer-events: all; }
-.slide.prev     { opacity: 0; transform: translateX(-60px); }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      opacity: 0;
+      transform: translateX(60px);
+      transition: opacity .45s ease, transform .45s ease;
+      pointer-events: none;
+    }
 
-/* ── Progress ──────────────────────────────────────────────── */
-#progress-bar {
-  position: fixed; top: 0; left: 0; height: 3px;
-  background: linear-gradient(90deg, var(--blue), var(--cyan));
-  transition: width .4s ease; z-index: 100;
-}
-#slide-counter {
-  position: fixed; bottom: 22px; right: 32px;
-  font-size: .75rem; color: var(--muted); letter-spacing: .5px;
-}
-#nav-hint {
-  position: fixed; bottom: 22px; left: 32px;
-  font-size: .72rem; color: var(--muted);
-}
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: all;
+    }
 
-/* ── Nav buttons ───────────────────────────────────────────── */
-.nav-btn {
-  position: fixed; top: 50%; transform: translateY(-50%);
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-  color: var(--muted); font-size: 1.2rem; width: 40px; height: 64px;
-  border-radius: 8px; cursor: pointer; transition: all .2s;
-  display: flex; align-items: center; justify-content: center;
-}
-.nav-btn:hover { background: rgba(255,255,255,.12); color: var(--white); }
-#btn-prev { left: 14px; }
-#btn-next { right: 14px; }
+    .slide.prev {
+      opacity: 0;
+      transform: translateX(-60px);
+    }
 
-/* ── Slide number dots ─────────────────────────────────────── */
-#dots {
-  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 6px;
-}
-.dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--dark3); transition: all .3s; cursor: pointer;
-}
-.dot.active { background: var(--blue); transform: scale(1.4); }
+    /* ── Progress ──────────────────────────────────────────────── */
+    #progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      transition: width .4s ease;
+      z-index: 100;
+    }
 
-/* ── Typography helpers ────────────────────────────────────── */
-h1 { font-size: 3rem; font-weight: 800; line-height: 1.1; }
-h2 { font-size: 2rem; font-weight: 700; margin-bottom: 32px; }
-h3 { font-size: 1.2rem; font-weight: 600; }
-p, li { font-size: .95rem; line-height: 1.65; color: #94a3b8; }
+    #slide-counter {
+      position: fixed;
+      bottom: 22px;
+      right: 32px;
+      font-size: .75rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+    }
 
-.tag {
-  display: inline-block; padding: 3px 12px; border-radius: 20px;
-  font-size: .75rem; font-weight: 600; letter-spacing: .3px;
-}
-.tag-blue   { background: rgba(59,130,246,.2);  color: var(--blue);   border: 1px solid rgba(59,130,246,.3); }
-.tag-green  { background: rgba(16,185,129,.2);  color: var(--green);  border: 1px solid rgba(16,185,129,.3); }
-.tag-purple { background: rgba(139,92,246,.2);  color: var(--purple); border: 1px solid rgba(139,92,246,.3); }
-.tag-cyan   { background: rgba(6,182,212,.2);   color: var(--cyan);   border: 1px solid rgba(6,182,212,.3);  }
-.tag-orange { background: rgba(245,158,11,.2);  color: var(--orange); border: 1px solid rgba(245,158,11,.3); }
-.tag-red    { background: rgba(239,68,68,.2);   color: var(--red);    border: 1px solid rgba(239,68,68,.3);  }
+    #nav-hint {
+      position: fixed;
+      bottom: 22px;
+      left: 32px;
+      font-size: .72rem;
+      color: var(--muted);
+    }
 
-.accent { color: var(--blue); }
-.accent-green  { color: var(--green); }
-.accent-cyan   { color: var(--cyan); }
-.accent-purple { color: var(--purple); }
-.accent-orange { color: var(--orange); }
+    /* ── Nav buttons ───────────────────────────────────────────── */
+    .nav-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .1);
+      color: var(--muted);
+      font-size: 1.2rem;
+      width: 40px;
+      height: 64px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-/* ── Cards ─────────────────────────────────────────────────── */
-.card {
-  background: var(--dark2); border: 1px solid rgba(255,255,255,.07);
-  border-radius: 14px; padding: 24px 28px;
-}
-.card-grid { display: grid; gap: 18px; width: 100%; }
-.card-grid-2 { grid-template-columns: 1fr 1fr; }
-.card-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-.card-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, .12);
+      color: var(--white);
+    }
 
-/* ── KPI chips ─────────────────────────────────────────────── */
-.kpi { text-align: center; }
-.kpi-val { font-size: 2.4rem; font-weight: 800; display: block; }
-.kpi-lbl { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    #btn-prev {
+      left: 14px;
+    }
 
-/* ── Pipeline flow ─────────────────────────────────────────── */
-.flow { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; width: 100%; }
-.flow-box {
-  flex: 1; text-align: center; padding: 16px 10px;
-  background: var(--dark2); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 10px; font-size: .82rem; font-weight: 600;
-}
-.flow-arrow { color: var(--muted); font-size: 1.3rem; padding: 0 6px; flex-shrink: 0; }
+    #btn-next {
+      right: 14px;
+    }
 
-/* ── Timeline ──────────────────────────────────────────────── */
-.timeline { display: flex; flex-direction: column; gap: 16px; width: 100%; }
-.tl-item { display: flex; gap: 20px; align-items: flex-start; }
-.tl-dot-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
-.tl-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; }
-.tl-line { width: 2px; flex: 1; background: rgba(255,255,255,.08); margin-top: 4px; }
-.tl-body { flex: 1; }
-.tl-title { font-weight: 600; font-size: .9rem; color: var(--white); }
-.tl-desc  { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+    /* ── Slide number dots ─────────────────────────────────────── */
+    #dots {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+    }
 
-/* ── Table ─────────────────────────────────────────────────── */
-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,.05); color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; }
-td { padding: 10px 14px; border-top: 1px solid rgba(255,255,255,.05); color: #94a3b8; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(255,255,255,.03); }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--dark3);
+      transition: all .3s;
+      cursor: pointer;
+    }
 
-/* ── Section header label ──────────────────────────────────── */
-.section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 10px; }
+    .dot.active {
+      background: var(--blue);
+      transform: scale(1.4);
+    }
 
-/* ── Cover slide ───────────────────────────────────────────── */
-.cover-bg {
-  background: radial-gradient(ellipse at 30% 40%, rgba(59,130,246,.18) 0%, transparent 60%),
-              radial-gradient(ellipse at 70% 60%, rgba(139,92,246,.12) 0%, transparent 55%),
-              var(--dark);
-}
-.cover-subtitle { font-size: 1.1rem; color: var(--muted); margin-top: 16px; max-width: 640px; text-align: center; line-height: 1.7; }
+    /* ── Typography helpers ────────────────────────────────────── */
+    h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
 
-/* ── Divider ───────────────────────────────────────────────── */
-.divider { width: 60px; height: 3px; border-radius: 2px; margin: 18px 0; }
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 32px;
+    }
 
-/* ── Check list ────────────────────────────────────────────── */
-.checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.checklist li { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; color: #94a3b8; }
-.checklist li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
 
-/* ── Slide-specific BGs ────────────────────────────────────── */
-.bg-glow-blue   { background: radial-gradient(ellipse at 20% 30%, rgba(59,130,246,.1)  0%, transparent 55%), var(--dark); }
-.bg-glow-green  { background: radial-gradient(ellipse at 80% 20%, rgba(16,185,129,.09) 0%, transparent 55%), var(--dark); }
-.bg-glow-purple { background: radial-gradient(ellipse at 50% 80%, rgba(139,92,246,.1)  0%, transparent 55%), var(--dark); }
-.bg-glow-cyan   { background: radial-gradient(ellipse at 70% 30%, rgba(6,182,212,.09)  0%, transparent 55%), var(--dark); }
-.bg-glow-orange { background: radial-gradient(ellipse at 30% 70%, rgba(245,158,11,.09) 0%, transparent 55%), var(--dark); }
+    p,
+    li {
+      font-size: .95rem;
+      line-height: 1.65;
+      color: #94a3b8;
+    }
 
-/* ── Badge ─────────────────────────────────────────────────── */
-.badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
 
-/* ── Code block ────────────────────────────────────────────── */
-.code-block {
-  background: #0d1117; border: 1px solid rgba(255,255,255,.08);
-  border-radius: 10px; padding: 16px 20px; font-family: 'Cascadia Code', 'Fira Code', monospace;
-  font-size: .82rem; color: #7dd3fc; line-height: 1.7; width: 100%;
-}
+    .tag-blue {
+      background: rgba(59, 130, 246, .2);
+      color: var(--blue);
+      border: 1px solid rgba(59, 130, 246, .3);
+    }
 
-/* ── Metric bar ─────────────────────────────────────────────── */
-.metric-bar-wrap { width: 100%; }
-.metric-bar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-.metric-bar-label { width: 180px; font-size: .82rem; color: #94a3b8; flex-shrink: 0; text-align: right; }
-.metric-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,.07); border-radius: 4px; overflow: hidden; }
-.metric-bar-fill  { height: 100%; border-radius: 4px; }
-.metric-bar-val   { width: 40px; font-size: .82rem; font-weight: 600; color: var(--white); }
+    .tag-green {
+      background: rgba(16, 185, 129, .2);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, .3);
+    }
 
-/* ── Wide layout ───────────────────────────────────────────── */
-.slide-content { width: 100%; max-width: 1100px; }
+    .tag-purple {
+      background: rgba(139, 92, 246, .2);
+      color: var(--purple);
+      border: 1px solid rgba(139, 92, 246, .3);
+    }
 
-/* ── Roadmap cards ─────────────────────────────────────────── */
-.roadmap-card { position: relative; overflow: hidden; }
-.roadmap-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-}
-.roadmap-v14::before { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
-.roadmap-v20::before { background: linear-gradient(90deg, var(--purple), var(--pink, #ec4899)); }
+    .tag-cyan {
+      background: rgba(6, 182, 212, .2);
+      color: var(--cyan);
+      border: 1px solid rgba(6, 182, 212, .3);
+    }
 
-.issue-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 20px; padding: 4px 12px; font-size: .75rem; color: #94a3b8;
-  margin: 3px;
-}
-.issue-chip span { color: var(--muted); font-size: .7rem; }
-</style>
+    .tag-orange {
+      background: rgba(245, 158, 11, .2);
+      color: var(--orange);
+      border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .tag-red {
+      background: rgba(239, 68, 68, .2);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, .3);
+    }
+
+    .accent {
+      color: var(--blue);
+    }
+
+    .accent-green {
+      color: var(--green);
+    }
+
+    .accent-cyan {
+      color: var(--cyan);
+    }
+
+    .accent-purple {
+      color: var(--purple);
+    }
+
+    .accent-orange {
+      color: var(--orange);
+    }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--dark2);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 14px;
+      padding: 24px 28px;
+    }
+
+    .card-grid {
+      display: grid;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .card-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .card-grid-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .card-grid-4 {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+
+    /* ── KPI chips ─────────────────────────────────────────────── */
+    .kpi {
+      text-align: center;
+    }
+
+    .kpi-val {
+      font-size: 2.4rem;
+      font-weight: 800;
+      display: block;
+    }
+
+    .kpi-lbl {
+      font-size: .78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    /* ── Pipeline flow ─────────────────────────────────────────── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
+    .flow-box {
+      flex: 1;
+      text-align: center;
+      padding: 16px 10px;
+      background: var(--dark2);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 10px;
+      font-size: .82rem;
+      font-weight: 600;
+    }
+
+    .flow-arrow {
+      color: var(--muted);
+      font-size: 1.3rem;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+
+    /* ── Timeline ──────────────────────────────────────────────── */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .tl-item {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .tl-dot-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .tl-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-top: 4px;
+    }
+
+    .tl-line {
+      width: 2px;
+      flex: 1;
+      background: rgba(255, 255, 255, .08);
+      margin-top: 4px;
+    }
+
+    .tl-body {
+      flex: 1;
+    }
+
+    .tl-title {
+      font-weight: 600;
+      font-size: .9rem;
+      color: var(--white);
+    }
+
+    .tl-desc {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Table ─────────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, .05);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-top: 1px solid rgba(255, 255, 255, .05);
+      color: #94a3b8;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, .03);
+    }
+
+    /* ── Section header label ──────────────────────────────────── */
+    .section-label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Cover slide ───────────────────────────────────────────── */
+    .cover-bg {
+      background: radial-gradient(ellipse at 30% 40%, rgba(59, 130, 246, .18) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, .12) 0%, transparent 55%),
+        var(--dark);
+    }
+
+    .cover-subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-top: 16px;
+      max-width: 640px;
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    /* ── Divider ───────────────────────────────────────────────── */
+    .divider {
+      width: 60px;
+      height: 3px;
+      border-radius: 2px;
+      margin: 18px 0;
+    }
+
+    /* ── Check list ────────────────────────────────────────────── */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checklist li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: .9rem;
+      color: #94a3b8;
+    }
+
+    .checklist li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Slide-specific BGs ────────────────────────────────────── */
+    .bg-glow-blue {
+      background: radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, .1) 0%, transparent 55%), var(--dark);
+    }
+
+    .bg-glow-green {
+      background: radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, .09) 0%, transparent 55%), var(--dark);
+    }
+
+    .bg-glow-purple {
+      background: radial-gradient(ellipse at 50% 80%, rgba(139, 92, 246, .1) 0%, transparent 55%), var(--dark);
+    }
+
+    .bg-glow-cyan {
+      background: radial-gradient(ellipse at 70% 30%, rgba(6, 182, 212, .09) 0%, transparent 55%), var(--dark);
+    }
+
+    .bg-glow-orange {
+      background: radial-gradient(ellipse at 30% 70%, rgba(245, 158, 11, .09) 0%, transparent 55%), var(--dark);
+    }
+
+    /* ── Badge ─────────────────────────────────────────────────── */
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    /* ── Code block ────────────────────────────────────────────── */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: .82rem;
+      color: #7dd3fc;
+      line-height: 1.7;
+      width: 100%;
+    }
+
+    /* ── Metric bar ─────────────────────────────────────────────── */
+    .metric-bar-wrap {
+      width: 100%;
+    }
+
+    .metric-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .metric-bar-label {
+      width: 180px;
+      font-size: .82rem;
+      color: #94a3b8;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .metric-bar-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, .07);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .metric-bar-val {
+      width: 40px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    /* ── Wide layout ───────────────────────────────────────────── */
+    .slide-content {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ── Roadmap cards ─────────────────────────────────────────── */
+    .roadmap-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .roadmap-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .roadmap-v14::before {
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+    }
+
+    .roadmap-v20::before {
+      background: linear-gradient(90deg, var(--purple), var(--pink, #ec4899));
+    }
+
+    .issue-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: .75rem;
+      color: #94a3b8;
+      margin: 3px;
+    }
+
+    .issue-chip span {
+      color: var(--muted);
+      font-size: .7rem;
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="progress-bar"></div>
-<button class="nav-btn" id="btn-prev" onclick="go(-1)">‹</button>
-<button class="nav-btn" id="btn-next" onclick="go(+1)">›</button>
-<div id="dots"></div>
-<div id="slide-counter"></div>
-<div id="nav-hint">← → pour naviguer</div>
+  <div id="progress-bar"></div>
+  <button class="nav-btn" id="btn-prev" onclick="go(-1)">‹</button>
+  <button class="nav-btn" id="btn-next" onclick="go(+1)">›</button>
+  <div id="dots"></div>
+  <div id="slide-counter"></div>
+  <div id="nav-hint">← → pour naviguer</div>
 
-<div class="deck" id="deck">
+  <div class="deck" id="deck">
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 1 — COUVERTURE
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide cover-bg">
-  <div style="text-align:center; max-width:780px;">
-    <div style="font-size:3.5rem; margin-bottom:18px;">⚡</div>
-    <h1>Pipeline de Données<br><span class="accent">Énergétiques France</span></h1>
-    <p class="cover-subtitle">
-      Ingestion multi-sources · ETL · Gouvernance · Dashboards interactifs · Streamlit · EC2 · GitLab CI/CD
-    </p>
-    <div class="badge-row" style="justify-content:center; margin-top:28px;">
-      <span class="tag tag-blue">Python 3.11</span>
-      <span class="tag tag-cyan">Plotly</span>
-      <span class="tag tag-green">Streamlit</span>
-      <span class="tag tag-purple">GitLab CI/CD</span>
-      <span class="tag tag-orange">AWS EC2</span>
-      <span class="tag tag-red">Prophet</span>
-    </div>
-    <p style="margin-top:36px; font-size:.78rem; color:var(--muted);">Rimiscky · 2026</p>
-  </div>
-</section>
+    <section class="slide cover-bg">
+      <div style="text-align:center; max-width:780px;">
+        <div style="font-size:3.5rem; margin-bottom:18px;">⚡</div>
+        <h1>Pipeline de Données<br><span class="accent">Énergétiques France</span></h1>
+        <p class="cover-subtitle">
+          Ingestion multi-sources · ETL · Gouvernance · Dashboards interactifs · Streamlit · EC2 · GitLab CI/CD
+        </p>
+        <div class="badge-row" style="justify-content:center; margin-top:28px;">
+          <span class="tag tag-blue">Python 3.11</span>
+          <span class="tag tag-cyan">Plotly</span>
+          <span class="tag tag-green">Streamlit</span>
+          <span class="tag tag-purple">GitLab CI/CD</span>
+          <span class="tag tag-orange">AWS EC2</span>
+          <span class="tag tag-red">Prophet</span>
+        </div>
+        <p style="margin-top:36px; font-size:.78rem; color:var(--muted);">SAMBALA Rimiscky · Master 1- Data Science·
+          2026</p>
+      </div>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 2 — SOMMAIRE
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-blue">
-  <div class="slide-content">
-    <p class="section-label">Plan</p>
-    <h2>Sommaire</h2>
-    <div class="card-grid card-grid-2" style="max-width:900px;">
-      <div class="card" style="border-left: 3px solid var(--blue);">
-        <h3 style="color:var(--blue); margin-bottom:12px;">01 — Contexte & Objectifs</h3>
-        <ul class="checklist"><li>Problématique</li><li>Sources de données</li><li>Architecture générale</li></ul>
+    <section class="slide bg-glow-blue">
+      <div class="slide-content">
+        <p class="section-label">Plan</p>
+        <h2>Sommaire</h2>
+        <div class="card-grid card-grid-2" style="max-width:900px;">
+          <div class="card" style="border-left: 3px solid var(--blue);">
+            <h3 style="color:var(--blue); margin-bottom:12px;">01 — Contexte & Objectifs</h3>
+            <ul class="checklist">
+              <li>Problématique</li>
+              <li>Sources de données</li>
+              <li>Architecture générale</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 3px solid var(--green);">
+            <h3 style="color:var(--green); margin-bottom:12px;">02 — Pipeline de données</h3>
+            <ul class="checklist">
+              <li>Ingestion multi-sources</li>
+              <li>ETL & transformation</li>
+              <li>Gouvernance</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 3px solid var(--cyan);">
+            <h3 style="color:var(--cyan); margin-bottom:12px;">03 — Visualisation</h3>
+            <ul class="checklist">
+              <li>4 dashboards HTML</li>
+              <li>Application Streamlit</li>
+              <li>Filtres & interactions</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 3px solid var(--purple);">
+            <h3 style="color:var(--purple); margin-bottom:12px;">04 — Infra & Décisions</h3>
+            <ul class="checklist">
+              <li>EC2 + CI/CD GitLab</li>
+              <li>Choix techniques</li>
+              <li>Résultats & roadmap</li>
+            </ul>
+          </div>
+        </div>
       </div>
-      <div class="card" style="border-left: 3px solid var(--green);">
-        <h3 style="color:var(--green); margin-bottom:12px;">02 — Pipeline de données</h3>
-        <ul class="checklist"><li>Ingestion multi-sources</li><li>ETL & transformation</li><li>Gouvernance</li></ul>
-      </div>
-      <div class="card" style="border-left: 3px solid var(--cyan);">
-        <h3 style="color:var(--cyan); margin-bottom:12px;">03 — Visualisation</h3>
-        <ul class="checklist"><li>4 dashboards HTML</li><li>Application Streamlit</li><li>Filtres & interactions</li></ul>
-      </div>
-      <div class="card" style="border-left: 3px solid var(--purple);">
-        <h3 style="color:var(--purple); margin-bottom:12px;">04 — Infra & Décisions</h3>
-        <ul class="checklist"><li>EC2 + CI/CD GitLab</li><li>Choix techniques</li><li>Résultats & roadmap</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 3 — STACK TECHNIQUE RÉEL
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" style="background:var(--dark);">
-  <div class="slide-content">
-    <p class="section-label">Stack technique</p>
-    <h2>Ce qui est <span class="accent-green">réellement utilisé</span></h2>
+    <section class="slide" style="background:var(--dark);">
+      <div class="slide-content">
+        <p class="section-label">Stack technique</p>
+        <h2>Ce qui est <span class="accent-green">réellement utilisé</span></h2>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
 
-      <!-- Colonne gauche -->
-      <div style="display:flex; flex-direction:column; gap:12px;">
+          <!-- Colonne gauche -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
 
-        <div class="card" style="border-left:3px solid var(--cyan);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--cyan); margin-bottom:10px;">Visualisation</div>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
-              <div>
-                <span style="font-weight:600; color:var(--white);">Plotly 5.18+</span>
-                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">graph_objects · subplots · Plotly.js 2.27.0</span>
+            <div class="card" style="border-left:3px solid var(--cyan);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--cyan); margin-bottom:10px;">
+                Visualisation</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
+                  <div>
+                    <span style="font-weight:600; color:var(--white);">Plotly 5.18+</span>
+                    <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">graph_objects · subplots ·
+                      Plotly.js 2.27.0</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
+                  <div>
+                    <span style="font-weight:600; color:var(--white);">Streamlit 1.32+</span>
+                    <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">st.plotly_chart() · 6 onglets ·
+                      sidebar filtres</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; opacity:.45;">
+                  <span style="color:var(--red); font-weight:700; font-size:1rem;">✗</span>
+                  <div>
+                    <span style="font-weight:600; color:#94a3b8; text-decoration:line-through;">Bokeh 3.3</span>
+                    <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">dans requirements — jamais
+                      importé</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
-              <div>
-                <span style="font-weight:600; color:var(--white);">Streamlit 1.32+</span>
-                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">st.plotly_chart() · 6 onglets · sidebar filtres</span>
+
+            <div class="card" style="border-left:3px solid var(--blue);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:10px;">
+                Données & ML</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <span class="tag tag-blue">pandas 2.1+</span>
+                <span class="tag tag-blue">numpy 1.24+</span>
+                <span class="tag tag-cyan">scikit-learn 1.3+</span>
+                <span class="tag tag-cyan">statsmodels 0.14+</span>
+                <span class="tag tag-purple">Prophet 1.1+</span>
+              </div>
+              <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
+                KMeans clustering · ARIMA · Prévisions 30j · Métriques MAE/RMSE/R²
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px; opacity:.45;">
-              <span style="color:var(--red); font-weight:700; font-size:1rem;">✗</span>
-              <div>
-                <span style="font-weight:600; color:#94a3b8; text-decoration:line-through;">Bokeh 3.3</span>
-                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">dans requirements — jamais importé</span>
+
+            <div class="card" style="border-left:3px solid var(--green);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:10px;">
+                Ingestion HTTP</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <span class="tag tag-green">requests 2.31+</span>
+                <span class="tag tag-green">beautifulsoup4</span>
+                <span class="tag tag-green">lxml</span>
+              </div>
+              <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
+                Retry 3× · timeout · context manager · OAuth2 RTE
               </div>
             </div>
+
+          </div>
+
+          <!-- Colonne droite -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+
+            <div class="card" style="border-left:3px solid var(--purple);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:10px;">
+                Infrastructure (en production)</div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+                  <span style="font-size:.84rem;"><strong style="color:var(--white);">AWS EC2</strong> <span
+                      style="color:var(--muted);">Ubuntu 22.04 · Paris · t2.micro</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+                  <span style="font-size:.84rem;"><strong style="color:var(--white);">Docker</strong> <span
+                      style="color:var(--muted);">multi-stage (test + production)</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+                  <span style="font-size:.84rem;"><strong style="color:var(--white);">GitLab CI/CD</strong> <span
+                      style="color:var(--muted);">self-hosted runner EC2</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+                  <span style="font-size:.84rem;"><strong style="color:var(--white);">systemd</strong> <span
+                      style="color:var(--muted);">streamlit.service · restart on-failure</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border-left:3px solid var(--orange);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--orange); margin-bottom:10px;">
+                Disponible dans le code — non déployé en prod</div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+                  <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;">
+                  </div>
+                  <span style="font-size:.84rem;"><strong style="color:#94a3b8;">PostgreSQL</strong> <span
+                      style="color:var(--muted);">SQLAlchemy · schéma energy.* · scripts/load_to_db.py</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+                  <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;">
+                  </div>
+                  <span style="font-size:.84rem;"><strong style="color:#94a3b8;">MinIO</strong> <span
+                      style="color:var(--muted);">stockage objet S3 · scripts/upload_to_minio.py</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+                  <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;">
+                  </div>
+                  <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Apache Airflow</strong> <span
+                      style="color:var(--muted);">DAG quotidien 6h UTC · airflow/dags/</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+                  <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;">
+                  </div>
+                  <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Prometheus</strong> <span
+                      style="color:var(--muted);">exporteur métriques · src/monitoring/</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="background:rgba(16,185,129,.05); border-color:rgba(16,185,129,.2);">
+              <div
+                style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">
+                Python</div>
+              <div style="font-size:1.8rem; font-weight:800; color:var(--white);">3.11 <span
+                  style="font-size:.9rem; color:var(--muted); font-weight:400;">— version de production</span></div>
+              <div style="margin-top:6px; font-size:.78rem; color:var(--muted);">Testé aussi en 3.12 via GitLab CI ·
+                zoneinfo · dataclasses · match-case</div>
+            </div>
+
           </div>
         </div>
-
-        <div class="card" style="border-left:3px solid var(--blue);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:10px;">Données & ML</div>
-          <div style="display:flex; flex-wrap:wrap; gap:7px;">
-            <span class="tag tag-blue">pandas 2.1+</span>
-            <span class="tag tag-blue">numpy 1.24+</span>
-            <span class="tag tag-cyan">scikit-learn 1.3+</span>
-            <span class="tag tag-cyan">statsmodels 0.14+</span>
-            <span class="tag tag-purple">Prophet 1.1+</span>
-          </div>
-          <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
-            KMeans clustering · ARIMA · Prévisions 30j · Métriques MAE/RMSE/R²
-          </div>
-        </div>
-
-        <div class="card" style="border-left:3px solid var(--green);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:10px;">Ingestion HTTP</div>
-          <div style="display:flex; flex-wrap:wrap; gap:7px;">
-            <span class="tag tag-green">requests 2.31+</span>
-            <span class="tag tag-green">beautifulsoup4</span>
-            <span class="tag tag-green">lxml</span>
-          </div>
-          <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
-            Retry 3× · timeout · context manager · OAuth2 RTE
-          </div>
-        </div>
-
       </div>
+    </section>
 
-      <!-- Colonne droite -->
-      <div style="display:flex; flex-direction:column; gap:12px;">
-
-        <div class="card" style="border-left:3px solid var(--purple);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:10px;">Infrastructure (en production)</div>
-          <div style="display:flex; flex-direction:column; gap:7px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:var(--white);">AWS EC2</strong> <span style="color:var(--muted);">Ubuntu 22.04 · Paris · t2.micro</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:var(--white);">Docker</strong> <span style="color:var(--muted);">multi-stage (test + production)</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:var(--white);">GitLab CI/CD</strong> <span style="color:var(--muted);">self-hosted runner EC2</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:var(--white);">systemd</strong> <span style="color:var(--muted);">streamlit.service · restart on-failure</span></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="border-left:3px solid var(--orange);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--orange); margin-bottom:10px;">Disponible dans le code — non déployé en prod</div>
-          <div style="display:flex; flex-direction:column; gap:7px;">
-            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
-              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">PostgreSQL</strong> <span style="color:var(--muted);">SQLAlchemy · schéma energy.* · scripts/load_to_db.py</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
-              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">MinIO</strong> <span style="color:var(--muted);">stockage objet S3 · scripts/upload_to_minio.py</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
-              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Apache Airflow</strong> <span style="color:var(--muted);">DAG quotidien 6h UTC · airflow/dags/</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
-              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
-              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Prometheus</strong> <span style="color:var(--muted);">exporteur métriques · src/monitoring/</span></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="background:rgba(16,185,129,.05); border-color:rgba(16,185,129,.2);">
-          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">Python</div>
-          <div style="font-size:1.8rem; font-weight:800; color:var(--white);">3.11 <span style="font-size:.9rem; color:var(--muted); font-weight:400;">— version de production</span></div>
-          <div style="margin-top:6px; font-size:.78rem; color:var(--muted);">Testé aussi en 3.12 via GitLab CI · zoneinfo · dataclasses · match-case</div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 4 — CONTEXTE & OBJECTIFS
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-green">
-  <div class="slide-content">
-    <p class="section-label">Contexte</p>
-    <h2>Objectifs du projet</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
-      <div>
-        <div class="card" style="margin-bottom:18px;">
-          <h3 style="color:var(--orange); margin-bottom:10px;">📌 Problématique</h3>
-          <p>Les données de consommation énergétique française sont publiques mais dispersées sur plusieurs sources, sans agrégation ni visualisation unifiée pour les 4 grandes régions.</p>
-        </div>
-        <div class="card">
-          <h3 style="color:var(--green); margin-bottom:10px;">🎯 Objectifs</h3>
-          <ul class="checklist">
-            <li>Collecter automatiquement les données énergie + météo</li>
-            <li>Transformer et stocker dans un warehouse propre</li>
-            <li>Exposer des visualisations interactives</li>
-            <li>Garantir la qualité avec la gouvernance</li>
-            <li>Déployer en production sur EC2</li>
-          </ul>
-        </div>
-      </div>
-      <div>
-        <div class="card">
-          <h3 style="color:var(--cyan); margin-bottom:14px;">📊 Périmètre géographique</h3>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:1.4rem;">🗼</span>
-              <div><div style="font-weight:600; font-size:.9rem;">Île-de-France</div><div style="font-size:.78rem; color:var(--muted);">Paris · Region motrice</div></div>
+    <section class="slide bg-glow-green">
+      <div class="slide-content">
+        <p class="section-label">Contexte</p>
+        <h2>Objectifs du projet</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+          <div>
+            <div class="card" style="margin-bottom:18px;">
+              <h3 style="color:var(--orange); margin-bottom:10px;">📌 Problématique</h3>
+              <p>Les données de consommation énergétique française sont publiques mais dispersées sur plusieurs sources,
+                sans agrégation ni visualisation unifiée pour les 4 grandes régions.</p>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:1.4rem;">🌊</span>
-              <div><div style="font-weight:600; font-size:.9rem;">Provence-Alpes-Côte d'Azur</div><div style="font-size:.78rem; color:var(--muted);">Aix-en-Provence · Fort solaire</div></div>
+            <div class="card">
+              <h3 style="color:var(--green); margin-bottom:10px;">🎯 Objectifs</h3>
+              <ul class="checklist">
+                <li>Collecter automatiquement les données énergie + météo</li>
+                <li>Transformer et stocker dans un warehouse propre</li>
+                <li>Exposer des visualisations interactives</li>
+                <li>Garantir la qualité avec la gouvernance</li>
+                <li>Déployer en production sur EC2</li>
+              </ul>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:1.4rem;">🌬️</span>
-              <div><div style="font-weight:600; font-size:.9rem;">Bretagne</div><div style="font-size:.78rem; color:var(--muted);">Rennes · Fort éolien</div></div>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:1.4rem;">🍇</span>
-              <div><div style="font-weight:600; font-size:.9rem;">Nouvelle-Aquitaine</div><div style="font-size:.78rem; color:var(--muted);">Bordeaux · Mix équilibré</div></div>
+          </div>
+          <div>
+            <div class="card">
+              <h3 style="color:var(--cyan); margin-bottom:14px;">📊 Périmètre géographique</h3>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="font-size:1.4rem;">🗼</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.9rem;">Île-de-France</div>
+                    <div style="font-size:.78rem; color:var(--muted);">Paris · Region motrice</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="font-size:1.4rem;">🌊</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.9rem;">Provence-Alpes-Côte d'Azur</div>
+                    <div style="font-size:.78rem; color:var(--muted);">Aix-en-Provence · Fort solaire</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="font-size:1.4rem;">🌬️</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.9rem;">Bretagne</div>
+                    <div style="font-size:.78rem; color:var(--muted);">Rennes · Fort éolien</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="font-size:1.4rem;">🍇</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.9rem;">Nouvelle-Aquitaine</div>
+                    <div style="font-size:.78rem; color:var(--muted);">Bordeaux · Mix équilibré</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 4 — SOURCES DE DONNÉES
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-cyan">
-  <div class="slide-content">
-    <p class="section-label">Données</p>
-    <h2>Sources de données</h2>
-    <div class="card-grid card-grid-3">
-      <div class="card" style="border-top: 3px solid var(--blue);">
-        <div style="font-size:2rem; margin-bottom:10px;">🏛️</div>
-        <h3 style="margin-bottom:8px; color:var(--blue);">API ODRE</h3>
-        <p style="font-size:.8rem; margin-bottom:12px;">Open Data Réseaux Énergies</p>
-        <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
-          <li>✦ Consommation brute élec + gaz</li>
-          <li>✦ Granularité demi-horaire</li>
-          <li>✦ 4 régions simultanées</li>
-          <li>✦ Accès gratuit, sans clé API</li>
-          <li>✦ 500 enregistrements / requête</li>
-        </ul>
-        <div class="badge-row" style="margin-top:14px;">
-          <span class="tag tag-blue">Public</span>
-          <span class="tag tag-green">Gratuit</span>
+    <section class="slide bg-glow-cyan">
+      <div class="slide-content">
+        <p class="section-label">Données</p>
+        <h2>Sources de données</h2>
+        <div class="card-grid card-grid-3">
+          <div class="card" style="border-top: 3px solid var(--blue);">
+            <div style="font-size:2rem; margin-bottom:10px;">🏛️</div>
+            <h3 style="margin-bottom:8px; color:var(--blue);">API ODRE</h3>
+            <p style="font-size:.8rem; margin-bottom:12px;">Open Data Réseaux Énergies</p>
+            <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
+              <li>✦ Consommation brute élec + gaz</li>
+              <li>✦ Granularité demi-horaire</li>
+              <li>✦ 4 régions simultanées</li>
+              <li>✦ Accès gratuit, sans clé API</li>
+              <li>✦ 500 enregistrements / requête</li>
+            </ul>
+            <div class="badge-row" style="margin-top:14px;">
+              <span class="tag tag-blue">Public</span>
+              <span class="tag tag-green">Gratuit</span>
+            </div>
+          </div>
+          <div class="card" style="border-top: 3px solid var(--cyan);">
+            <div style="font-size:2rem; margin-bottom:10px;">🌤️</div>
+            <h3 style="margin-bottom:8px; color:var(--cyan);">Open-Meteo</h3>
+            <p style="font-size:.8rem; margin-bottom:12px;">API météo historique</p>
+            <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
+              <li>✦ Température, humidité, vent</li>
+              <li>✦ Précipitations, couverture nuageuse</li>
+              <li>✦ Données horaires par GPS</li>
+              <li>✦ Archive complète disponible</li>
+              <li>✦ Pas de clé API requise</li>
+            </ul>
+            <div class="badge-row" style="margin-top:14px;">
+              <span class="tag tag-cyan">REST</span>
+              <span class="tag tag-green">Gratuit</span>
+            </div>
+          </div>
+          <div class="card" style="border-top: 3px solid var(--purple);">
+            <div style="font-size:2rem; margin-bottom:10px;">⚡</div>
+            <h3 style="margin-bottom:8px; color:var(--purple);">API RTE</h3>
+            <p style="font-size:.8rem; margin-bottom:12px;">Réseau de Transport d'Électricité</p>
+            <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
+              <li>✦ Mix de génération par filière</li>
+              <li>✦ Nucléaire, éolien, solaire…</li>
+              <li>✦ Authentification OAuth2</li>
+              <li>✦ Token Base64 (client_credentials)</li>
+              <li>✦ Renouvellement auto du token</li>
+            </ul>
+            <div class="badge-row" style="margin-top:14px;">
+              <span class="tag tag-purple">OAuth2</span>
+              <span class="tag tag-orange">Compte RTE</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card" style="border-top: 3px solid var(--cyan);">
-        <div style="font-size:2rem; margin-bottom:10px;">🌤️</div>
-        <h3 style="margin-bottom:8px; color:var(--cyan);">Open-Meteo</h3>
-        <p style="font-size:.8rem; margin-bottom:12px;">API météo historique</p>
-        <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
-          <li>✦ Température, humidité, vent</li>
-          <li>✦ Précipitations, couverture nuageuse</li>
-          <li>✦ Données horaires par GPS</li>
-          <li>✦ Archive complète disponible</li>
-          <li>✦ Pas de clé API requise</li>
-        </ul>
-        <div class="badge-row" style="margin-top:14px;">
-          <span class="tag tag-cyan">REST</span>
-          <span class="tag tag-green">Gratuit</span>
-        </div>
-      </div>
-      <div class="card" style="border-top: 3px solid var(--purple);">
-        <div style="font-size:2rem; margin-bottom:10px;">⚡</div>
-        <h3 style="margin-bottom:8px; color:var(--purple);">API RTE</h3>
-        <p style="font-size:.8rem; margin-bottom:12px;">Réseau de Transport d'Électricité</p>
-        <ul style="list-style:none; font-size:.82rem; color:#94a3b8; line-height:2;">
-          <li>✦ Mix de génération par filière</li>
-          <li>✦ Nucléaire, éolien, solaire…</li>
-          <li>✦ Authentification OAuth2</li>
-          <li>✦ Token Base64 (client_credentials)</li>
-          <li>✦ Renouvellement auto du token</li>
-        </ul>
-        <div class="badge-row" style="margin-top:14px;">
-          <span class="tag tag-purple">OAuth2</span>
-          <span class="tag tag-orange">Compte RTE</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 5 — ARCHITECTURE
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" style="background: var(--dark);">
-  <div class="slide-content">
-    <p class="section-label">Architecture</p>
-    <h2>Vue d'ensemble du système</h2>
-    <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
+    <section class="slide" style="background: var(--dark);">
+      <div class="slide-content">
+        <p class="section-label">Architecture</p>
+        <h2>Vue d'ensemble du système</h2>
+        <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
 
-      <!-- Row 1 — Sources -->
-      <div style="display:flex; gap:12px;">
-        <div class="card" style="flex:1; text-align:center; border-color:rgba(59,130,246,.3);">
-          <div style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Sources</div>
-          <div style="display:flex; justify-content:center; gap:16px;">
-            <span style="font-size:.85rem; color:var(--blue);">🏛️ ODRE</span>
-            <span style="font-size:.85rem; color:var(--cyan);">🌤️ Open-Meteo</span>
-            <span style="font-size:.85rem; color:var(--purple);">⚡ RTE OAuth2</span>
+          <!-- Row 1 — Sources -->
+          <div style="display:flex; gap:12px;">
+            <div class="card" style="flex:1; text-align:center; border-color:rgba(59,130,246,.3);">
+              <div
+                style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">
+                Sources</div>
+              <div style="display:flex; justify-content:center; gap:16px;">
+                <span style="font-size:.85rem; color:var(--blue);">🏛️ ODRE</span>
+                <span style="font-size:.85rem; color:var(--cyan);">🌤️ Open-Meteo</span>
+                <span style="font-size:.85rem; color:var(--purple);">⚡ RTE OAuth2</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
+
+          <!-- Row 2 — Ingestion + Data Lake -->
+          <div style="display:flex; gap:12px;">
+            <div class="card" style="flex:1; border-color:rgba(16,185,129,.3);">
+              <div
+                style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+                Ingestion <code style="font-size:.7rem; color:var(--green);">src/ingestion/</code></div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <span class="tag tag-green">ODREClient · retry 3x</span>
+                <span class="tag tag-cyan">MeteoClient</span>
+                <span class="tag tag-purple">RTEClient OAuth2</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; color:var(--muted);">→</div>
+            <div class="card" style="flex:1; border-color:rgba(245,158,11,.3);">
+              <div
+                style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+                Data Lake <code style="font-size:.7rem; color:var(--orange);">data/raw/</code></div>
+              <div style="font-size:.8rem; color:#94a3b8;">JSON + CSV horodatés<br>api/ · meteo/ · rte/</div>
+            </div>
+          </div>
+
+          <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
+
+          <!-- Row 3 — ETL + Warehouse -->
+          <div style="display:flex; gap:12px;">
+            <div class="card" style="flex:1; border-color:rgba(59,130,246,.3);">
+              <div
+                style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+                ETL <code style="font-size:.7rem; color:var(--blue);">src/etl/</code></div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <span class="tag tag-blue">Normalisation</span>
+                <span class="tag tag-blue">UTC + enrichissement</span>
+                <span class="tag tag-cyan">merge_asof énergie×météo</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; color:var(--muted);">→</div>
+            <div class="card" style="flex:1; border-color:rgba(6,182,212,.3);">
+              <div
+                style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+                Warehouse <code style="font-size:.7rem; color:var(--cyan);">data/warehouse/</code></div>
+              <div style="font-size:.8rem; color:#94a3b8;">500 lignes · 24+ colonnes<br>4 régions · latest.csv</div>
+            </div>
+          </div>
+
+          <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
+
+          <!-- Row 4 — Outputs -->
+          <div style="display:flex; gap:12px;">
+            <div class="card" style="flex:1; text-align:center; border-color:rgba(139,92,246,.2);">
+              <div style="font-size:.85rem; color:var(--purple);">🎨 Dashboards HTML</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">EC2 :8080</div>
+            </div>
+            <div class="card" style="flex:1; text-align:center; border-color:rgba(16,185,129,.2);">
+              <div style="font-size:.85rem; color:var(--green);">📊 Streamlit</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">EC2 :8501</div>
+            </div>
+            <div class="card" style="flex:1; text-align:center; border-color:rgba(245,158,11,.2);">
+              <div style="font-size:.85rem; color:var(--orange);">📋 Gouvernance</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Qualité · Lignage · Catalogue</div>
+            </div>
+            <div class="card" style="flex:1; text-align:center; border-color:rgba(59,130,246,.2);">
+              <div style="font-size:.85rem; color:var(--blue);">🔁 GitLab CI/CD</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Tests · Deploy auto</div>
+            </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
-
-      <!-- Row 2 — Ingestion + Data Lake -->
-      <div style="display:flex; gap:12px;">
-        <div class="card" style="flex:1; border-color:rgba(16,185,129,.3);">
-          <div style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Ingestion <code style="font-size:.7rem; color:var(--green);">src/ingestion/</code></div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <span class="tag tag-green">ODREClient · retry 3x</span>
-            <span class="tag tag-cyan">MeteoClient</span>
-            <span class="tag tag-purple">RTEClient OAuth2</span>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; color:var(--muted);">→</div>
-        <div class="card" style="flex:1; border-color:rgba(245,158,11,.3);">
-          <div style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Data Lake <code style="font-size:.7rem; color:var(--orange);">data/raw/</code></div>
-          <div style="font-size:.8rem; color:#94a3b8;">JSON + CSV horodatés<br>api/ · meteo/ · rte/</div>
-        </div>
-      </div>
-
-      <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
-
-      <!-- Row 3 — ETL + Warehouse -->
-      <div style="display:flex; gap:12px;">
-        <div class="card" style="flex:1; border-color:rgba(59,130,246,.3);">
-          <div style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">ETL <code style="font-size:.7rem; color:var(--blue);">src/etl/</code></div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <span class="tag tag-blue">Normalisation</span>
-            <span class="tag tag-blue">UTC + enrichissement</span>
-            <span class="tag tag-cyan">merge_asof énergie×météo</span>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; color:var(--muted);">→</div>
-        <div class="card" style="flex:1; border-color:rgba(6,182,212,.3);">
-          <div style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Warehouse <code style="font-size:.7rem; color:var(--cyan);">data/warehouse/</code></div>
-          <div style="font-size:.8rem; color:#94a3b8;">500 lignes · 24+ colonnes<br>4 régions · latest.csv</div>
-        </div>
-      </div>
-
-      <div style="text-align:center; color:var(--muted); font-size:1.2rem;">↓</div>
-
-      <!-- Row 4 — Outputs -->
-      <div style="display:flex; gap:12px;">
-        <div class="card" style="flex:1; text-align:center; border-color:rgba(139,92,246,.2);">
-          <div style="font-size:.85rem; color:var(--purple);">🎨 Dashboards HTML</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">EC2 :8080</div>
-        </div>
-        <div class="card" style="flex:1; text-align:center; border-color:rgba(16,185,129,.2);">
-          <div style="font-size:.85rem; color:var(--green);">📊 Streamlit</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">EC2 :8501</div>
-        </div>
-        <div class="card" style="flex:1; text-align:center; border-color:rgba(245,158,11,.2);">
-          <div style="font-size:.85rem; color:var(--orange);">📋 Gouvernance</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Qualité · Lignage · Catalogue</div>
-        </div>
-        <div class="card" style="flex:1; text-align:center; border-color:rgba(59,130,246,.2);">
-          <div style="font-size:.85rem; color:var(--blue);">🔁 GitLab CI/CD</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Tests · Deploy auto</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 6 — PIPELINE ETL
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-blue">
-  <div class="slide-content">
-    <p class="section-label">Traitement</p>
-    <h2>Pipeline ETL — Étapes détaillées</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card" style="border-left:3px solid var(--blue);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="background:var(--blue); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">1</span>
-            <h3 style="color:var(--blue);">Ingestion</h3>
+    <section class="slide bg-glow-blue">
+      <div class="slide-content">
+        <p class="section-label">Traitement</p>
+        <h2>Pipeline ETL — Étapes détaillées</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="card" style="border-left:3px solid var(--blue);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span
+                  style="background:var(--blue); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">1</span>
+                <h3 style="color:var(--blue);">Ingestion</h3>
+              </div>
+              <p style="font-size:.82rem;">Appel API avec retry 3× et backoff exponentiel. Sauvegarde JSON + CSV
+                horodatés dans <code style="color:var(--cyan);">data/raw/</code>.</p>
+            </div>
+            <div class="card" style="border-left:3px solid var(--cyan);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span
+                  style="background:var(--cyan); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">2</span>
+                <h3 style="color:var(--cyan);">Extraction</h3>
+              </div>
+              <p style="font-size:.82rem;">Lecture du fichier JSON le plus récent par région. Conversion en DataFrame
+                pandas.</p>
+            </div>
+            <div class="card" style="border-left:3px solid var(--green);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span
+                  style="background:var(--green); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">3</span>
+                <h3 style="color:var(--green);">Transformation</h3>
+              </div>
+              <p style="font-size:.82rem;">Renommage colonnes, conversion UTC, remplissage NaN=0, enrichissement
+                temporel (heure, weekend, trimestre), métriques dérivées.</p>
+            </div>
           </div>
-          <p style="font-size:.82rem;">Appel API avec retry 3× et backoff exponentiel. Sauvegarde JSON + CSV horodatés dans <code style="color:var(--cyan);">data/raw/</code>.</p>
-        </div>
-        <div class="card" style="border-left:3px solid var(--cyan);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="background:var(--cyan); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">2</span>
-            <h3 style="color:var(--cyan);">Extraction</h3>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="card" style="border-left:3px solid var(--purple);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span
+                  style="background:var(--purple); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">4</span>
+                <h3 style="color:var(--purple);">Fusion Énergie × Météo</h3>
+              </div>
+              <p style="font-size:.82rem;"><code style="color:var(--cyan);">merge_asof</code> sur datetime, tolérance
+                1h. Ajout catégories : <code style="color:var(--cyan);">temp_category</code>, <code
+                  style="color:var(--cyan);">wind_category</code>, <code style="color:var(--cyan);">is_rainy</code>.
+                Taux de correspondance : 100%.</p>
+            </div>
+            <div class="card" style="border-left:3px solid var(--orange);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span
+                  style="background:var(--orange); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">5</span>
+                <h3 style="color:var(--orange);">Chargement</h3>
+              </div>
+              <p style="font-size:.82rem;">Sauvegarde <code style="color:var(--cyan);">latest.csv</code> + partitions
+                <code style="color:var(--cyan);">year=YYYY/data_ts.csv</code> pour chacune des 4 régions.</p>
+            </div>
+            <div class="card" style="background:rgba(16,185,129,.06); border-color:rgba(16,185,129,.2);">
+              <h3 style="color:var(--green); margin-bottom:8px;">Résultat</h3>
+              <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                <div class="kpi"><span class="kpi-val" style="color:var(--green); font-size:1.6rem;">500</span><span
+                    class="kpi-lbl">lignes / région</span></div>
+                <div class="kpi"><span class="kpi-val" style="color:var(--cyan); font-size:1.6rem;">35</span><span
+                    class="kpi-lbl">colonnes (fusionné)</span></div>
+                <div class="kpi"><span class="kpi-val" style="color:var(--blue); font-size:1.6rem;">4</span><span
+                    class="kpi-lbl">régions</span></div>
+              </div>
+            </div>
           </div>
-          <p style="font-size:.82rem;">Lecture du fichier JSON le plus récent par région. Conversion en DataFrame pandas.</p>
-        </div>
-        <div class="card" style="border-left:3px solid var(--green);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="background:var(--green); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">3</span>
-            <h3 style="color:var(--green);">Transformation</h3>
-          </div>
-          <p style="font-size:.82rem;">Renommage colonnes, conversion UTC, remplissage NaN=0, enrichissement temporel (heure, weekend, trimestre), métriques dérivées.</p>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card" style="border-left:3px solid var(--purple);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="background:var(--purple); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">4</span>
-            <h3 style="color:var(--purple);">Fusion Énergie × Météo</h3>
-          </div>
-          <p style="font-size:.82rem;"><code style="color:var(--cyan);">merge_asof</code> sur datetime, tolérance 1h. Ajout catégories : <code style="color:var(--cyan);">temp_category</code>, <code style="color:var(--cyan);">wind_category</code>, <code style="color:var(--cyan);">is_rainy</code>. Taux de correspondance : 100%.</p>
-        </div>
-        <div class="card" style="border-left:3px solid var(--orange);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="background:var(--orange); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0;">5</span>
-            <h3 style="color:var(--orange);">Chargement</h3>
-          </div>
-          <p style="font-size:.82rem;">Sauvegarde <code style="color:var(--cyan);">latest.csv</code> + partitions <code style="color:var(--cyan);">year=YYYY/data_ts.csv</code> pour chacune des 4 régions.</p>
-        </div>
-        <div class="card" style="background:rgba(16,185,129,.06); border-color:rgba(16,185,129,.2);">
-          <h3 style="color:var(--green); margin-bottom:8px;">Résultat</h3>
-          <div style="display:flex; gap:16px; flex-wrap:wrap;">
-            <div class="kpi"><span class="kpi-val" style="color:var(--green); font-size:1.6rem;">500</span><span class="kpi-lbl">lignes / région</span></div>
-            <div class="kpi"><span class="kpi-val" style="color:var(--cyan); font-size:1.6rem;">35</span><span class="kpi-lbl">colonnes (fusionné)</span></div>
-            <div class="kpi"><span class="kpi-val" style="color:var(--blue); font-size:1.6rem;">4</span><span class="kpi-lbl">régions</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 7 — GOUVERNANCE
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-orange">
-  <div class="slide-content">
-    <p class="section-label">Qualité</p>
-    <h2>Gouvernance des données</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card">
-          <h3 style="color:var(--orange); margin-bottom:14px;">📋 Trois piliers</h3>
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-              <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
-              <div><div style="font-weight:600; font-size:.88rem; color:var(--white);">DataQualityChecker</div><div style="font-size:.8rem; color:var(--muted);">Score 0–100%, 7 règles : complétude, doublons, plages valides, cohérence temporelle</div></div>
+    <section class="slide bg-glow-orange">
+      <div class="slide-content">
+        <p class="section-label">Qualité</p>
+        <h2>Gouvernance des données</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card">
+              <h3 style="color:var(--orange); margin-bottom:14px;">📋 Trois piliers</h3>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                  <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.88rem; color:var(--white);">DataQualityChecker</div>
+                    <div style="font-size:.8rem; color:var(--muted);">Score 0–100%, 7 règles : complétude, doublons,
+                      plages valides, cohérence temporelle</div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                  <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.88rem; color:var(--white);">DataLineageTracker</div>
+                    <div style="font-size:.8rem; color:var(--muted);">Traçabilité complète source → warehouse →
+                      dashboard</div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                  <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
+                  <div>
+                    <div style="font-weight:600; font-size:.88rem; color:var(--white);">DataCatalog</div>
+                    <div style="font-size:.8rem; color:var(--muted);">3 datasets enregistrés avec métadonnées et tags
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-              <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
-              <div><div style="font-weight:600; font-size:.88rem; color:var(--white);">DataLineageTracker</div><div style="font-size:.8rem; color:var(--muted);">Traçabilité complète source → warehouse → dashboard</div></div>
+            <div class="card" style="background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.2);">
+              <h3 style="color:var(--orange); margin-bottom:10px;">⚠️ Point d'amélioration</h3>
+              <p style="font-size:.82rem;">Score actuel : <strong style="color:var(--orange);">57%</strong> (4/7 règles
+                OK). Issue <strong>#3</strong> vise ≥ 80% en v1.4.0 en corrigeant les seuils et les valeurs aberrantes.
+              </p>
             </div>
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-              <span style="color:var(--green); font-size:1.1rem; margin-top:2px;">✓</span>
-              <div><div style="font-weight:600; font-size:.88rem; color:var(--white);">DataCatalog</div><div style="font-size:.8rem; color:var(--muted);">3 datasets enregistrés avec métadonnées et tags</div></div>
+          </div>
+          <div>
+            <div class="card" style="height:100%;">
+              <h3 style="color:var(--cyan); margin-bottom:18px;">Métriques de qualité</h3>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar-row">
+                  <div class="metric-bar-label">Complétude</div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill" style="width:92%; background:var(--green);"></div>
+                  </div>
+                  <div class="metric-bar-val">92%</div>
+                </div>
+                <div class="metric-bar-row">
+                  <div class="metric-bar-label">Sans doublons</div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill" style="width:100%; background:var(--green);"></div>
+                  </div>
+                  <div class="metric-bar-val">100%</div>
+                </div>
+                <div class="metric-bar-row">
+                  <div class="metric-bar-label">Plages valides</div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill" style="width:78%; background:var(--orange);"></div>
+                  </div>
+                  <div class="metric-bar-val">78%</div>
+                </div>
+                <div class="metric-bar-row">
+                  <div class="metric-bar-label">Cohérence temp.</div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill" style="width:85%; background:var(--green);"></div>
+                  </div>
+                  <div class="metric-bar-val">85%</div>
+                </div>
+                <div class="metric-bar-row">
+                  <div class="metric-bar-label">Score global</div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill" style="width:57%; background:var(--orange);"></div>
+                  </div>
+                  <div class="metric-bar-val" style="color:var(--orange);">57%</div>
+                </div>
+              </div>
+              <p style="font-size:.75rem; color:var(--muted); margin-top:14px;">Rapport sauvegardé dans
+                <code>data/governance/quality/quality_energy_meteo_idf.json</code></p>
             </div>
           </div>
         </div>
-        <div class="card" style="background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.2);">
-          <h3 style="color:var(--orange); margin-bottom:10px;">⚠️ Point d'amélioration</h3>
-          <p style="font-size:.82rem;">Score actuel : <strong style="color:var(--orange);">57%</strong> (4/7 règles OK). Issue <strong>#3</strong> vise ≥ 80% en v1.4.0 en corrigeant les seuils et les valeurs aberrantes.</p>
-        </div>
       </div>
-      <div>
-        <div class="card" style="height:100%;">
-          <h3 style="color:var(--cyan); margin-bottom:18px;">Métriques de qualité</h3>
-          <div class="metric-bar-wrap">
-            <div class="metric-bar-row">
-              <div class="metric-bar-label">Complétude</div>
-              <div class="metric-bar-track"><div class="metric-bar-fill" style="width:92%; background:var(--green);"></div></div>
-              <div class="metric-bar-val">92%</div>
-            </div>
-            <div class="metric-bar-row">
-              <div class="metric-bar-label">Sans doublons</div>
-              <div class="metric-bar-track"><div class="metric-bar-fill" style="width:100%; background:var(--green);"></div></div>
-              <div class="metric-bar-val">100%</div>
-            </div>
-            <div class="metric-bar-row">
-              <div class="metric-bar-label">Plages valides</div>
-              <div class="metric-bar-track"><div class="metric-bar-fill" style="width:78%; background:var(--orange);"></div></div>
-              <div class="metric-bar-val">78%</div>
-            </div>
-            <div class="metric-bar-row">
-              <div class="metric-bar-label">Cohérence temp.</div>
-              <div class="metric-bar-track"><div class="metric-bar-fill" style="width:85%; background:var(--green);"></div></div>
-              <div class="metric-bar-val">85%</div>
-            </div>
-            <div class="metric-bar-row">
-              <div class="metric-bar-label">Score global</div>
-              <div class="metric-bar-track"><div class="metric-bar-fill" style="width:57%; background:var(--orange);"></div></div>
-              <div class="metric-bar-val" style="color:var(--orange);">57%</div>
-            </div>
-          </div>
-          <p style="font-size:.75rem; color:var(--muted); margin-top:14px;">Rapport sauvegardé dans <code>data/governance/quality/quality_energy_meteo_idf.json</code></p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 8 — DASHBOARDS HTML
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-cyan">
-  <div class="slide-content">
-    <p class="section-label">Visualisation</p>
-    <h2>Dashboards HTML interactifs</h2>
-    <div class="card-grid card-grid-2">
-      <div class="card" style="border-top:3px solid var(--blue);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-          <h3 style="color:var(--blue);">🗼 Dashboard IDF</h3>
-          <div style="display:flex; gap:6px;"><span class="tag tag-blue">9 graphiques</span></div>
+    <section class="slide bg-glow-cyan">
+      <div class="slide-content">
+        <p class="section-label">Visualisation</p>
+        <h2>Dashboards HTML interactifs</h2>
+        <div class="card-grid card-grid-2">
+          <div class="card" style="border-top:3px solid var(--blue);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <h3 style="color:var(--blue);">🗼 Dashboard IDF</h3>
+              <div style="display:flex; gap:6px;"><span class="tag tag-blue">9 graphiques</span></div>
+            </div>
+            <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
+              <li>📈 Profil horaire · Consommation journalière</li>
+              <li>📊 Box plots par heure · Heatmap calendrier</li>
+              <li>🌡️ Profil 24h par saison (4 couleurs)</li>
+              <li>🔍 Détection anomalies z-score σ=2.5</li>
+              <li>⚙️ Filtres JS : date, saison, jour, tranche horaire</li>
+            </ul>
+            <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">Données embarquées JSON · Plotly.react()
+              · Animations CSS</div>
+          </div>
+          <div class="card" style="border-top:3px solid var(--purple);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <h3 style="color:var(--purple);">🗺️ Comparaison Multi-Régions</h3>
+              <span class="tag tag-purple">5 graphiques</span>
+            </div>
+            <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
+              <li>📊 Sélection de 2 régions à comparer</li>
+              <li>📡 Radar profil saisonnier</li>
+              <li>↕️ Écart quotidien région A − région B</li>
+              <li>🎬 Animations KPI · Badge VS pulsant</li>
+            </ul>
+            <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">2 000 lignes · Filtre saison + type de
+              jour</div>
+          </div>
+          <div class="card" style="border-top:3px solid var(--cyan);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <h3 style="color:var(--cyan);">🌡️ Énergie × Météo</h3>
+              <span class="tag tag-cyan">6 graphiques</span>
+            </div>
+            <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
+              <li>📉 Énergie vs Température (double axe)</li>
+              <li>🔵 Scatter + tendance polynomiale deg. 2</li>
+              <li>🌡️ Conso par catégorie thermique (gel → canicule)</li>
+              <li>🔥 Heatmap de corrélation multi-variables</li>
+            </ul>
+            <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">Requiert temperature_2m · Fusion
+              DataMerger</div>
+          </div>
+          <div class="card" style="border-top:3px solid var(--green);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <h3 style="color:var(--green);">🏠 Page d'accueil</h3>
+              <span class="tag tag-green">index.html</span>
+            </div>
+            <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
+              <li>🔗 Liens vers les 3 dashboards + Streamlit</li>
+              <li>📊 Cartes avec statistiques clés</li>
+              <li>🎨 Hover animations · Design cohérent</li>
+            </ul>
+            <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">CDN Plotly fixé à 2.27.0 · Autonome (pas
+              de serveur)</div>
+          </div>
         </div>
-        <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
-          <li>📈 Profil horaire · Consommation journalière</li>
-          <li>📊 Box plots par heure · Heatmap calendrier</li>
-          <li>🌡️ Profil 24h par saison (4 couleurs)</li>
-          <li>🔍 Détection anomalies z-score σ=2.5</li>
-          <li>⚙️ Filtres JS : date, saison, jour, tranche horaire</li>
-        </ul>
-        <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">Données embarquées JSON · Plotly.react() · Animations CSS</div>
       </div>
-      <div class="card" style="border-top:3px solid var(--purple);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-          <h3 style="color:var(--purple);">🗺️ Comparaison Multi-Régions</h3>
-          <span class="tag tag-purple">5 graphiques</span>
-        </div>
-        <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
-          <li>📊 Sélection de 2 régions à comparer</li>
-          <li>📡 Radar profil saisonnier</li>
-          <li>↕️ Écart quotidien région A − région B</li>
-          <li>🎬 Animations KPI · Badge VS pulsant</li>
-        </ul>
-        <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">2 000 lignes · Filtre saison + type de jour</div>
-      </div>
-      <div class="card" style="border-top:3px solid var(--cyan);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-          <h3 style="color:var(--cyan);">🌡️ Énergie × Météo</h3>
-          <span class="tag tag-cyan">6 graphiques</span>
-        </div>
-        <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
-          <li>📉 Énergie vs Température (double axe)</li>
-          <li>🔵 Scatter + tendance polynomiale deg. 2</li>
-          <li>🌡️ Conso par catégorie thermique (gel → canicule)</li>
-          <li>🔥 Heatmap de corrélation multi-variables</li>
-        </ul>
-        <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">Requiert temperature_2m · Fusion DataMerger</div>
-      </div>
-      <div class="card" style="border-top:3px solid var(--green);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-          <h3 style="color:var(--green);">🏠 Page d'accueil</h3>
-          <span class="tag tag-green">index.html</span>
-        </div>
-        <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
-          <li>🔗 Liens vers les 3 dashboards + Streamlit</li>
-          <li>📊 Cartes avec statistiques clés</li>
-          <li>🎨 Hover animations · Design cohérent</li>
-        </ul>
-        <div style="margin-top:10px; font-size:.75rem; color:var(--muted);">CDN Plotly fixé à 2.27.0 · Autonome (pas de serveur)</div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 9 — STREAMLIT
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-green">
-  <div class="slide-content">
-    <p class="section-label">Application</p>
-    <h2>Application Streamlit — 6 onglets</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
-      <div class="card" style="border-left:3px solid var(--blue);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:8px;">Onglet 1</div>
-        <h3 style="margin-bottom:8px;">Vue d'ensemble</h3>
-        <p style="font-size:.8rem;">KPIs avec delta vs période précédente. Moyenne, pic, min, gaz. Évolution temporelle.</p>
+    <section class="slide bg-glow-green">
+      <div class="slide-content">
+        <p class="section-label">Application</p>
+        <h2>Application Streamlit — 6 onglets</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+          <div class="card" style="border-left:3px solid var(--blue);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:8px;">
+              Onglet 1</div>
+            <h3 style="margin-bottom:8px;">Vue d'ensemble</h3>
+            <p style="font-size:.8rem;">KPIs avec delta vs période précédente. Moyenne, pic, min, gaz. Évolution
+              temporelle.</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--cyan);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--cyan); margin-bottom:8px;">
+              Onglet 2</div>
+            <h3 style="margin-bottom:8px;">Consommation</h3>
+            <p style="font-size:.8rem;">Profil saisonnier, heatmap heure×jour, distribution, détection anomalies.</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--green);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">
+              Onglet 3</div>
+            <h3 style="margin-bottom:8px;">Météo × Énergie</h3>
+            <p style="font-size:.8rem;">Fusion dynamique Open-Meteo. Corrélations croisées, scatter, heatmap
+              multi-variables.</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--purple);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:8px;">
+              Onglet 4</div>
+            <h3 style="margin-bottom:8px;">Mix de production</h3>
+            <p style="font-size:.8rem;">Génération RTE par filière : nucléaire, éolien, solaire, hydraulique, thermique.
+            </p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--orange);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--orange); margin-bottom:8px;">
+              Onglet 5</div>
+            <h3 style="margin-bottom:8px;">Gouvernance</h3>
+            <p style="font-size:.8rem;">Score qualité, rapport détaillé, lignage des données, catalogue.</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--red);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--red); margin-bottom:8px;">
+              Onglet 6</div>
+            <h3 style="margin-bottom:8px;">Prévisions</h3>
+            <p style="font-size:.8rem;">Forecast 30 jours Prophet + IC 95%. Slider horizon J+3/J+7/J+14. Export CSV.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px; display:flex; align-items:center; gap:20px; padding:14px 20px;">
+          <div style="font-size:.8rem; color:var(--muted);">Sidebar :</div>
+          <span class="tag tag-blue">4 régions</span>
+          <span class="tag tag-cyan">Période 7j/30j/90j</span>
+          <span class="tag tag-orange">Seuil d'alerte MW</span>
+          <span class="tag tag-green">Export CSV</span>
+          <div style="margin-left:auto; font-size:.8rem; color:var(--muted);">🌐 <strong
+              style="color:var(--white);">13.39.99.56:8501</strong> · systemd · restart on-failure</div>
+        </div>
       </div>
-      <div class="card" style="border-left:3px solid var(--cyan);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--cyan); margin-bottom:8px;">Onglet 2</div>
-        <h3 style="margin-bottom:8px;">Consommation</h3>
-        <p style="font-size:.8rem;">Profil saisonnier, heatmap heure×jour, distribution, détection anomalies.</p>
-      </div>
-      <div class="card" style="border-left:3px solid var(--green);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">Onglet 3</div>
-        <h3 style="margin-bottom:8px;">Météo × Énergie</h3>
-        <p style="font-size:.8rem;">Fusion dynamique Open-Meteo. Corrélations croisées, scatter, heatmap multi-variables.</p>
-      </div>
-      <div class="card" style="border-left:3px solid var(--purple);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:8px;">Onglet 4</div>
-        <h3 style="margin-bottom:8px;">Mix de production</h3>
-        <p style="font-size:.8rem;">Génération RTE par filière : nucléaire, éolien, solaire, hydraulique, thermique.</p>
-      </div>
-      <div class="card" style="border-left:3px solid var(--orange);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--orange); margin-bottom:8px;">Onglet 5</div>
-        <h3 style="margin-bottom:8px;">Gouvernance</h3>
-        <p style="font-size:.8rem;">Score qualité, rapport détaillé, lignage des données, catalogue.</p>
-      </div>
-      <div class="card" style="border-left:3px solid var(--red);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--red); margin-bottom:8px;">Onglet 6</div>
-        <h3 style="margin-bottom:8px;">Prévisions</h3>
-        <p style="font-size:.8rem;">Forecast 30 jours Prophet + IC 95%. Slider horizon J+3/J+7/J+14. Export CSV.</p>
-      </div>
-    </div>
-    <div class="card" style="margin-top:14px; display:flex; align-items:center; gap:20px; padding:14px 20px;">
-      <div style="font-size:.8rem; color:var(--muted);">Sidebar :</div>
-      <span class="tag tag-blue">4 régions</span>
-      <span class="tag tag-cyan">Période 7j/30j/90j</span>
-      <span class="tag tag-orange">Seuil d'alerte MW</span>
-      <span class="tag tag-green">Export CSV</span>
-      <div style="margin-left:auto; font-size:.8rem; color:var(--muted);">🌐 <strong style="color:var(--white);">13.39.99.56:8501</strong> · systemd · restart on-failure</div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 10 — INFRASTRUCTURE EC2
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-orange">
-  <div class="slide-content">
-    <p class="section-label">Production</p>
-    <h2>Infrastructure AWS EC2</h2>
-    <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:20px;">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card">
-          <h3 style="color:var(--orange); margin-bottom:14px;">🖥️ Serveur</h3>
-          <table>
-            <tr><td style="color:var(--muted); width:130px;">Instance</td><td style="color:var(--white);">t2.micro · Ubuntu 22.04</td></tr>
-            <tr><td style="color:var(--muted);">Région AWS</td><td style="color:var(--white);">eu-west-3 (Paris)</td></tr>
-            <tr><td style="color:var(--muted);">IP publique</td><td style="color:var(--cyan);">13.39.99.56</td></tr>
-            <tr><td style="color:var(--muted);">Accès</td><td style="color:var(--white);">SSH via PEM key</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <h3 style="color:var(--cyan); margin-bottom:14px;">🔌 Services actifs</h3>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <div style="background:rgba(16,185,129,.2); border:1px solid var(--green); border-radius:50%; width:8px; height:8px; flex-shrink:0;"></div>
-              <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Dashboards HTML</span> <span style="color:var(--muted); font-size:.8rem;">— port 8080 — cron @reboot</span></div>
+    <section class="slide bg-glow-orange">
+      <div class="slide-content">
+        <p class="section-label">Production</p>
+        <h2>Infrastructure AWS EC2</h2>
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card">
+              <h3 style="color:var(--orange); margin-bottom:14px;">🖥️ Serveur</h3>
+              <table>
+                <tr>
+                  <td style="color:var(--muted); width:130px;">Instance</td>
+                  <td style="color:var(--white);">t2.micro · Ubuntu 22.04</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--muted);">Région AWS</td>
+                  <td style="color:var(--white);">eu-west-3 (Paris)</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--muted);">IP publique</td>
+                  <td style="color:var(--cyan);">13.39.99.56</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--muted);">Accès</td>
+                  <td style="color:var(--white);">SSH via PEM key</td>
+                </tr>
+              </table>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <div style="background:rgba(16,185,129,.2); border:1px solid var(--green); border-radius:50%; width:8px; height:8px; flex-shrink:0;"></div>
-              <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Streamlit</span> <span style="color:var(--muted); font-size:.8rem;">— port 8501 — systemd auto-restart</span></div>
+            <div class="card">
+              <h3 style="color:var(--cyan); margin-bottom:14px;">🔌 Services actifs</h3>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div
+                    style="background:rgba(16,185,129,.2); border:1px solid var(--green); border-radius:50%; width:8px; height:8px; flex-shrink:0;">
+                  </div>
+                  <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Dashboards HTML</span> <span
+                      style="color:var(--muted); font-size:.8rem;">— port 8080 — cron @reboot</span></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div
+                    style="background:rgba(16,185,129,.2); border:1px solid var(--green); border-radius:50%; width:8px; height:8px; flex-shrink:0;">
+                  </div>
+                  <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Streamlit</span> <span
+                      style="color:var(--muted); font-size:.8rem;">— port 8501 — systemd auto-restart</span></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div
+                    style="background:rgba(245,158,11,.2); border:1px solid var(--orange); border-radius:50%; width:8px; height:8px; flex-shrink:0;">
+                  </div>
+                  <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Cleanup disque</span> <span
+                      style="color:var(--muted); font-size:.8rem;">— cron dim. 3h UTC</span></div>
+                </div>
+              </div>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <div style="background:rgba(245,158,11,.2); border:1px solid var(--orange); border-radius:50%; width:8px; height:8px; flex-shrink:0;"></div>
-              <div><span style="font-size:.85rem; font-weight:600; color:var(--white);">Cleanup disque</span> <span style="color:var(--muted); font-size:.8rem;">— cron dim. 3h UTC</span></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card">
+              <h3 style="color:var(--purple); margin-bottom:12px;">🔐 Secrets</h3>
+              <p style="font-size:.82rem; margin-bottom:10px;"><code style="color:var(--cyan);">/home/ubuntu/.env</code>
+                (chmod 600)</p>
+              <p style="font-size:.8rem; color:var(--muted);">Injecté dans systemd via <code
+                  style="color:var(--cyan);">EnvironmentFile</code> — jamais dans le code ni dans Git.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--green); margin-bottom:12px;">🧹 Cleanup hebdo</h3>
+              <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
+                <li>🐳 Images Docker orphelines</li>
+                <li>📝 Logs journald + app &gt; 14 jours</li>
+                <li>📂 data/raw/ &gt; 7 jours</li>
+                <li>📦 Cache APT + pip + /tmp</li>
+              </ul>
+              <p style="font-size:.75rem; color:var(--green); margin-top:8px;">~1 Go libéré · 48% → 43% disque</p>
             </div>
           </div>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card">
-          <h3 style="color:var(--purple); margin-bottom:12px;">🔐 Secrets</h3>
-          <p style="font-size:.82rem; margin-bottom:10px;"><code style="color:var(--cyan);">/home/ubuntu/.env</code> (chmod 600)</p>
-          <p style="font-size:.8rem; color:var(--muted);">Injecté dans systemd via <code style="color:var(--cyan);">EnvironmentFile</code> — jamais dans le code ni dans Git.</p>
-        </div>
-        <div class="card">
-          <h3 style="color:var(--green); margin-bottom:12px;">🧹 Cleanup hebdo</h3>
-          <ul style="list-style:none; font-size:.8rem; color:#94a3b8; line-height:1.9;">
-            <li>🐳 Images Docker orphelines</li>
-            <li>📝 Logs journald + app &gt; 14 jours</li>
-            <li>📂 data/raw/ &gt; 7 jours</li>
-            <li>📦 Cache APT + pip + /tmp</li>
-          </ul>
-          <p style="font-size:.75rem; color:var(--green); margin-top:8px;">~1 Go libéré · 48% → 43% disque</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 11 — GITLAB CI/CD
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-purple">
-  <div class="slide-content">
-    <p class="section-label">CI/CD</p>
-    <h2>Pipeline GitLab CI/CD</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:18px;">
-      <div class="card" style="border-top:3px solid var(--blue);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:8px;">Stage 1 — test</div>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
-            <div style="font-size:.8rem; font-weight:600; color:var(--white);">test:py311</div>
-            <div style="font-size:.75rem; color:var(--muted);">pytest + JUnit XML</div>
+    <section class="slide bg-glow-purple">
+      <div class="slide-content">
+        <p class="section-label">CI/CD</p>
+        <h2>Pipeline GitLab CI/CD</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:18px;">
+          <div class="card" style="border-top:3px solid var(--blue);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:8px;">
+              Stage 1 — test</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
+                <div style="font-size:.8rem; font-weight:600; color:var(--white);">test:py311</div>
+                <div style="font-size:.75rem; color:var(--muted);">pytest + JUnit XML</div>
+              </div>
+              <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
+                <div style="font-size:.8rem; font-weight:600; color:var(--white);">test:py312</div>
+                <div style="font-size:.75rem; color:var(--muted);">pytest + JUnit XML</div>
+              </div>
+              <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
+                <div style="font-size:.8rem; font-weight:600; color:var(--white);">lint:flake8</div>
+                <div style="font-size:.75rem; color:var(--muted);">max-line-length 120</div>
+              </div>
+              <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
+                <div style="font-size:.8rem; font-weight:600; color:var(--white);">docker:test</div>
+                <div style="font-size:.75rem; color:var(--muted);">Build + pytest en container</div>
+              </div>
+            </div>
           </div>
-          <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
-            <div style="font-size:.8rem; font-weight:600; color:var(--white);">test:py312</div>
-            <div style="font-size:.75rem; color:var(--muted);">pytest + JUnit XML</div>
+          <div class="card" style="border-top:3px solid var(--green);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">
+              Stage 2 — deploy</div>
+            <div class="card" style="padding:12px 14px; background:rgba(255,255,255,.03); margin-bottom:10px;">
+              <div style="font-size:.8rem; font-weight:600; color:var(--white);">deploy:ec2</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">
+                Déclenché sur <code style="color:var(--green);">main</code> si src/scripts/config changent.
+              </div>
+            </div>
+            <ul style="list-style:none; font-size:.78rem; color:#94a3b8; line-height:1.9;">
+              <li>🐳 Build image Docker production</li>
+              <li>▶️ Lancement pipeline complet</li>
+              <li>🌐 Redémarrage serveur HTTP :8080</li>
+              <li>🏷️ Runner self-hosted sur EC2</li>
+            </ul>
           </div>
-          <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
-            <div style="font-size:.8rem; font-weight:600; color:var(--white);">lint:flake8</div>
-            <div style="font-size:.75rem; color:var(--muted);">max-line-length 120</div>
-          </div>
-          <div class="card" style="padding:10px 14px; background:rgba(255,255,255,.03);">
-            <div style="font-size:.8rem; font-weight:600; color:var(--white);">docker:test</div>
-            <div style="font-size:.75rem; color:var(--muted);">Build + pytest en container</div>
+          <div class="card" style="border-top:3px solid var(--purple);">
+            <div
+              style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:8px;">
+              Stage 3 — pipeline</div>
+            <div class="card" style="padding:12px 14px; background:rgba(255,255,255,.03); margin-bottom:10px;">
+              <div style="font-size:.8rem; font-weight:600; color:var(--white);">pipeline:manual</div>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Déclenchement manuel, variable <code
+                  style="color:var(--cyan);">MAX_RECORDS</code>.</div>
+            </div>
+            <ul style="list-style:none; font-size:.78rem; color:#94a3b8; line-height:1.9;">
+              <li>1. Ingestion ODRE + Météo + RTE</li>
+              <li>2. ETL 4 régions</li>
+              <li>3. Génération dashboards</li>
+              <li>📦 Artifacts 30 jours</li>
+            </ul>
           </div>
         </div>
-      </div>
-      <div class="card" style="border-top:3px solid var(--green);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">Stage 2 — deploy</div>
-        <div class="card" style="padding:12px 14px; background:rgba(255,255,255,.03); margin-bottom:10px;">
-          <div style="font-size:.8rem; font-weight:600; color:var(--white);">deploy:ec2</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">
-            Déclenché sur <code style="color:var(--green);">main</code> si src/scripts/config changent.
-          </div>
+        <div class="code-block" style="font-size:.78rem;">
+          git push → test:py311 + test:py312 + lint + docker → (si main) deploy:ec2 → dashboards mis à jour
         </div>
-        <ul style="list-style:none; font-size:.78rem; color:#94a3b8; line-height:1.9;">
-          <li>🐳 Build image Docker production</li>
-          <li>▶️ Lancement pipeline complet</li>
-          <li>🌐 Redémarrage serveur HTTP :8080</li>
-          <li>🏷️ Runner self-hosted sur EC2</li>
-        </ul>
       </div>
-      <div class="card" style="border-top:3px solid var(--purple);">
-        <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:8px;">Stage 3 — pipeline</div>
-        <div class="card" style="padding:12px 14px; background:rgba(255,255,255,.03); margin-bottom:10px;">
-          <div style="font-size:.8rem; font-weight:600; color:var(--white);">pipeline:manual</div>
-          <div style="font-size:.75rem; color:var(--muted); margin-top:4px;">Déclenchement manuel, variable <code style="color:var(--cyan);">MAX_RECORDS</code>.</div>
-        </div>
-        <ul style="list-style:none; font-size:.78rem; color:#94a3b8; line-height:1.9;">
-          <li>1. Ingestion ODRE + Météo + RTE</li>
-          <li>2. ETL 4 régions</li>
-          <li>3. Génération dashboards</li>
-          <li>📦 Artifacts 30 jours</li>
-        </ul>
-      </div>
-    </div>
-    <div class="code-block" style="font-size:.78rem;">
-git push → test:py311 + test:py312 + lint + docker → (si main) deploy:ec2 → dashboards mis à jour
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 12 — DÉCISIONS TECHNIQUES
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-blue">
-  <div class="slide-content">
-    <p class="section-label">Choix d'ingénierie</p>
-    <h2>Décisions techniques clés</h2>
-    <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
-      <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-        <span style="font-size:1.4rem; flex-shrink:0;">🔀</span>
-        <div>
-          <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-blue" style="margin-right:8px;">ETL</span>merge_asof au lieu d'un join classique</div>
-          <p style="font-size:.82rem;">Les timestamps énergie (demi-horaire) et météo (horaire) ne sont jamais parfaitement alignés. <code style="color:var(--cyan);">merge_asof</code> avec tolérance 1h permet une jointure temporelle approximative sans perdre de lignes. Résultat : 100% de correspondances.</p>
+    <section class="slide bg-glow-blue">
+      <div class="slide-content">
+        <p class="section-label">Choix d'ingénierie</p>
+        <h2>Décisions techniques clés</h2>
+        <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
+          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
+            <span style="font-size:1.4rem; flex-shrink:0;">🔀</span>
+            <div>
+              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-blue"
+                  style="margin-right:8px;">ETL</span>merge_asof au lieu d'un join classique</div>
+              <p style="font-size:.82rem;">Les timestamps énergie (demi-horaire) et météo (horaire) ne sont jamais
+                parfaitement alignés. <code style="color:var(--cyan);">merge_asof</code> avec tolérance 1h permet une
+                jointure temporelle approximative sans perdre de lignes. Résultat : 100% de correspondances.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
+            <span style="font-size:1.4rem; flex-shrink:0;">📦</span>
+            <div>
+              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-cyan"
+                  style="margin-right:8px;">Dashboard</span>Données embarquées JSON dans le HTML</div>
+              <p style="font-size:.82rem;">Les dashboards HTML sont des fichiers autonomes (pas de backend). Les données
+                (500 lignes) sont injectées dans <code style="color:var(--cyan);">window.D</code> à la génération.
+                Avantage : zéro dépendance serveur, cacheable, distribuable.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
+            <span style="font-size:1.4rem; flex-shrink:0;">🔒</span>
+            <div>
+              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-orange"
+                  style="margin-right:8px;">Secrets</span>EnvironmentFile systemd au lieu de .bashrc</div>
+              <p style="font-size:.82rem;"><code style="color:var(--cyan);">.bashrc</code> n'est pas sourcé par les
+                services systemd. Solution : <code style="color:var(--cyan);">EnvironmentFile=/home/ubuntu/.env</code>
+                dans l'unité systemd. Clé RTE disponible dans le service sans l'exposer dans le code.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
+            <span style="font-size:1.4rem; flex-shrink:0;">📌</span>
+            <div>
+              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-purple"
+                  style="margin-right:8px;">Frontend</span>CDN Plotly fixé à 2.27.0</div>
+              <p style="font-size:.82rem;"><code style="color:var(--cyan);">plotly-latest.min.js</code> peut rompre les
+                rendus à chaque mise à jour. Version fixée : comportement déterministe en production, même hors ligne si
+                le CDN est down.</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-        <span style="font-size:1.4rem; flex-shrink:0;">📦</span>
-        <div>
-          <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-cyan" style="margin-right:8px;">Dashboard</span>Données embarquées JSON dans le HTML</div>
-          <p style="font-size:.82rem;">Les dashboards HTML sont des fichiers autonomes (pas de backend). Les données (500 lignes) sont injectées dans <code style="color:var(--cyan);">window.D</code> à la génération. Avantage : zéro dépendance serveur, cacheable, distribuable.</p>
-        </div>
-      </div>
-      <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-        <span style="font-size:1.4rem; flex-shrink:0;">🔒</span>
-        <div>
-          <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-orange" style="margin-right:8px;">Secrets</span>EnvironmentFile systemd au lieu de .bashrc</div>
-          <p style="font-size:.82rem;"><code style="color:var(--cyan);">.bashrc</code> n'est pas sourcé par les services systemd. Solution : <code style="color:var(--cyan);">EnvironmentFile=/home/ubuntu/.env</code> dans l'unité systemd. Clé RTE disponible dans le service sans l'exposer dans le code.</p>
-        </div>
-      </div>
-      <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-        <span style="font-size:1.4rem; flex-shrink:0;">📌</span>
-        <div>
-          <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-purple" style="margin-right:8px;">Frontend</span>CDN Plotly fixé à 2.27.0</div>
-          <p style="font-size:.82rem;"><code style="color:var(--cyan);">plotly-latest.min.js</code> peut rompre les rendus à chaque mise à jour. Version fixée : comportement déterministe en production, même hors ligne si le CDN est down.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 13 — RÉSULTATS
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-green">
-  <div class="slide-content">
-    <p class="section-label">Bilan</p>
-    <h2>Résultats obtenus</h2>
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;">
-      <div class="card kpi" style="background:rgba(59,130,246,.08); border-color:rgba(59,130,246,.2);">
-        <span class="kpi-val" style="color:var(--blue);">4</span>
-        <span class="kpi-lbl">Régions couvertes</span>
+    <section class="slide bg-glow-green">
+      <div class="slide-content">
+        <p class="section-label">Bilan</p>
+        <h2>Résultats obtenus</h2>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;">
+          <div class="card kpi" style="background:rgba(59,130,246,.08); border-color:rgba(59,130,246,.2);">
+            <span class="kpi-val" style="color:var(--blue);">4</span>
+            <span class="kpi-lbl">Régions couvertes</span>
+          </div>
+          <div class="card kpi" style="background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.2);">
+            <span class="kpi-val" style="color:var(--green);">3</span>
+            <span class="kpi-lbl">Sources de données</span>
+          </div>
+          <div class="card kpi" style="background:rgba(6,182,212,.08); border-color:rgba(6,182,212,.2);">
+            <span class="kpi-val" style="color:var(--cyan);">20</span>
+            <span class="kpi-lbl">Graphiques (HTML + Streamlit)</span>
+          </div>
+          <div class="card kpi" style="background:rgba(139,92,246,.08); border-color:rgba(139,92,246,.2);">
+            <span class="kpi-val" style="color:var(--purple);">92</span>
+            <span class="kpi-lbl">Commits Git</span>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="card">
+            <h3 style="color:var(--green); margin-bottom:12px;">✅ Fonctionnel en production</h3>
+            <ul class="checklist">
+              <li>Pipeline ETL complet 4 régions</li>
+              <li>4 dashboards HTML servis sur EC2 :8080</li>
+              <li>App Streamlit 6 onglets sur EC2 :8501</li>
+              <li>CI/CD GitLab avec runner self-hosted</li>
+              <li>Gouvernance : qualité, lignage, catalogue</li>
+              <li>Prévisions 30j Prophet opérationnelles</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--orange); margin-bottom:12px;">📦 Livrables</h3>
+            <table>
+              <tr>
+                <td style="color:var(--muted);">Version actuelle</td>
+                <td><span class="tag tag-blue">v1.3.0</span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);">Fichiers docs</td>
+                <td style="color:var(--white);">CHANGELOG · CONTRIBUTING · 4 docs</td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);">GitLab issues</td>
+                <td style="color:var(--white);">9 issues · 2 milestones</td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);">Nettoyage disque</td>
+                <td style="color:var(--green);">48% → 43% (−1 Go)</td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);">Fusion météo</td>
+                <td style="color:var(--green);">100% correspondances</td>
+              </tr>
+            </table>
+          </div>
+        </div>
       </div>
-      <div class="card kpi" style="background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.2);">
-        <span class="kpi-val" style="color:var(--green);">3</span>
-        <span class="kpi-lbl">Sources de données</span>
-      </div>
-      <div class="card kpi" style="background:rgba(6,182,212,.08); border-color:rgba(6,182,212,.2);">
-        <span class="kpi-val" style="color:var(--cyan);">20</span>
-        <span class="kpi-lbl">Graphiques (HTML + Streamlit)</span>
-      </div>
-      <div class="card kpi" style="background:rgba(139,92,246,.08); border-color:rgba(139,92,246,.2);">
-        <span class="kpi-val" style="color:var(--purple);">92</span>
-        <span class="kpi-lbl">Commits Git</span>
-      </div>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-      <div class="card">
-        <h3 style="color:var(--green); margin-bottom:12px;">✅ Fonctionnel en production</h3>
-        <ul class="checklist">
-          <li>Pipeline ETL complet 4 régions</li>
-          <li>4 dashboards HTML servis sur EC2 :8080</li>
-          <li>App Streamlit 6 onglets sur EC2 :8501</li>
-          <li>CI/CD GitLab avec runner self-hosted</li>
-          <li>Gouvernance : qualité, lignage, catalogue</li>
-          <li>Prévisions 30j Prophet opérationnelles</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3 style="color:var(--orange); margin-bottom:12px;">📦 Livrables</h3>
-        <table>
-          <tr><td style="color:var(--muted);">Version actuelle</td><td><span class="tag tag-blue">v1.3.0</span></td></tr>
-          <tr><td style="color:var(--muted);">Fichiers docs</td><td style="color:var(--white);">CHANGELOG · CONTRIBUTING · 4 docs</td></tr>
-          <tr><td style="color:var(--muted);">GitLab issues</td><td style="color:var(--white);">9 issues · 2 milestones</td></tr>
-          <tr><td style="color:var(--muted);">Nettoyage disque</td><td style="color:var(--green);">48% → 43% (−1 Go)</td></tr>
-          <tr><td style="color:var(--muted);">Fusion météo</td><td style="color:var(--green);">100% correspondances</td></tr>
-        </table>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 14 — ROADMAP
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-purple">
-  <div class="slide-content">
-    <p class="section-label">Avenir</p>
-    <h2>Roadmap — Prochaines versions</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-      <div class="card roadmap-card roadmap-v14" style="padding-top:20px;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-          <span class="tag tag-blue" style="font-size:.8rem; padding:4px 14px;">v1.4.0</span>
-          <span style="color:var(--muted); font-size:.82rem;">Échéance : 30 juin 2026</span>
+    <section class="slide bg-glow-purple">
+      <div class="slide-content">
+        <p class="section-label">Avenir</p>
+        <h2>Roadmap — Prochaines versions</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div class="card roadmap-card roadmap-v14" style="padding-top:20px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <span class="tag tag-blue" style="font-size:.8rem; padding:4px 14px;">v1.4.0</span>
+              <span style="color:var(--muted); font-size:.82rem;">Échéance : 30 juin 2026</span>
+            </div>
+            <h3 style="color:var(--blue); margin-bottom:14px;">Automatisation & robustesse</h3>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="issue-chip"><span>#1</span> Cron quotidien mise à jour EC2</div>
+              <div class="issue-chip"><span>#2</span> Tests unitaires DataMerger + CrossDash</div>
+              <div class="issue-chip"><span>#3</span> Score gouvernance 57% → 80%</div>
+              <div class="issue-chip"><span>#4</span> Alertes e-mail seuil consommation</div>
+              <div class="issue-chip"><span>#5</span> Monitoring disque avant saturation</div>
+            </div>
+          </div>
+          <div class="card roadmap-card roadmap-v20" style="padding-top:20px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <span class="tag tag-purple" style="font-size:.8rem; padding:4px 14px;">v2.0.0</span>
+              <span style="color:var(--muted); font-size:.82rem;">Échéance : 30 sept. 2026</span>
+            </div>
+            <h3 style="color:var(--purple); margin-bottom:14px;">Nouvelles sources & régions</h3>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="issue-chip"><span>#6</span> Région Grand-Est (5ème région)</div>
+              <div class="issue-chip"><span>#7</span> Prix électricité EPEX SPOT €/MWh</div>
+              <div class="issue-chip"><span>#8</span> Dashboard mobile responsive</div>
+              <div class="issue-chip"><span>#9</span> Rapports PDF automatiques hebdo</div>
+            </div>
+          </div>
         </div>
-        <h3 style="color:var(--blue); margin-bottom:14px;">Automatisation & robustesse</h3>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div class="issue-chip"><span>#1</span> Cron quotidien mise à jour EC2</div>
-          <div class="issue-chip"><span>#2</span> Tests unitaires DataMerger + CrossDash</div>
-          <div class="issue-chip"><span>#3</span> Score gouvernance 57% → 80%</div>
-          <div class="issue-chip"><span>#4</span> Alertes e-mail seuil consommation</div>
-          <div class="issue-chip"><span>#5</span> Monitoring disque avant saturation</div>
+        <div class="card" style="margin-top:16px; background:rgba(6,182,212,.05); border-color:rgba(6,182,212,.15);">
+          <div style="display:flex; gap:32px; align-items:center;">
+            <div style="font-size:.8rem; color:var(--muted);">Suivi sur GitLab :</div>
+            <div style="font-size:.82rem; color:var(--cyan);">gitlab.com/Rimiscky/data_cl/-/issues</div>
+            <div style="font-size:.8rem; color:var(--muted);">8 labels · 2 milestones · 9 issues ouverts</div>
+          </div>
         </div>
       </div>
-      <div class="card roadmap-card roadmap-v20" style="padding-top:20px;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-          <span class="tag tag-purple" style="font-size:.8rem; padding:4px 14px;">v2.0.0</span>
-          <span style="color:var(--muted); font-size:.82rem;">Échéance : 30 sept. 2026</span>
-        </div>
-        <h3 style="color:var(--purple); margin-bottom:14px;">Nouvelles sources & régions</h3>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div class="issue-chip"><span>#6</span> Région Grand-Est (5ème région)</div>
-          <div class="issue-chip"><span>#7</span> Prix électricité EPEX SPOT €/MWh</div>
-          <div class="issue-chip"><span>#8</span> Dashboard mobile responsive</div>
-          <div class="issue-chip"><span>#9</span> Rapports PDF automatiques hebdo</div>
-        </div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px; background:rgba(6,182,212,.05); border-color:rgba(6,182,212,.15);">
-      <div style="display:flex; gap:32px; align-items:center;">
-        <div style="font-size:.8rem; color:var(--muted);">Suivi sur GitLab :</div>
-        <div style="font-size:.82rem; color:var(--cyan);">gitlab.com/Rimiscky/data_cl/-/issues</div>
-        <div style="font-size:.8rem; color:var(--muted);">8 labels · 2 milestones · 9 issues ouverts</div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 15 — RECOMMANDATIONS
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide bg-glow-blue">
-  <div class="slide-content">
-    <p class="section-label">Recommandations</p>
-    <h2>Priorités & recommandations</h2>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card" style="border-left:3px solid var(--red);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="color:var(--red);">🔴</span>
-            <h3 style="color:var(--red);">Court terme (1 mois)</h3>
+    <section class="slide bg-glow-blue">
+      <div class="slide-content">
+        <p class="section-label">Recommandations</p>
+        <h2>Priorités & recommandations</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card" style="border-left:3px solid var(--red);">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="color:var(--red);">🔴</span>
+                <h3 style="color:var(--red);">Court terme (1 mois)</h3>
+              </div>
+              <ul class="checklist">
+                <li>Automatiser le cron quotidien EC2 (issue #1) — évite les mises à jour manuelles</li>
+                <li>Améliorer le score gouvernance → 80% (issue #3)</li>
+                <li>Ajouter monitoring disque avant saturation (issue #5 — urgent)</li>
+              </ul>
+            </div>
+            <div class="card" style="border-left:3px solid var(--orange);">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="color:var(--orange);">🟠</span>
+                <h3 style="color:var(--orange);">Moyen terme (3 mois)</h3>
+              </div>
+              <ul class="checklist">
+                <li>Couverture tests ≥ 80% avant v2.0.0 (issue #2)</li>
+                <li>Alertes e-mail seuil consommation (issue #4)</li>
+                <li>Ajouter région Grand-Est (issue #6)</li>
+              </ul>
+            </div>
           </div>
-          <ul class="checklist">
-            <li>Automatiser le cron quotidien EC2 (issue #1) — évite les mises à jour manuelles</li>
-            <li>Améliorer le score gouvernance → 80% (issue #3)</li>
-            <li>Ajouter monitoring disque avant saturation (issue #5 — urgent)</li>
-          </ul>
-        </div>
-        <div class="card" style="border-left:3px solid var(--orange);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="color:var(--orange);">🟠</span>
-            <h3 style="color:var(--orange);">Moyen terme (3 mois)</h3>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card" style="border-left:3px solid var(--blue);">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="color:var(--blue);">🔵</span>
+                <h3 style="color:var(--blue);">Long terme (6 mois)</h3>
+              </div>
+              <ul class="checklist">
+                <li>Intégrer les prix EPEX SPOT pour analyse tarifaire (issue #7)</li>
+                <li>Dashboard mobile responsive (issue #8)</li>
+                <li>Export PDF automatique des rapports hebdo (issue #9)</li>
+              </ul>
+            </div>
+            <div class="card" style="background:rgba(16,185,129,.06); border-color:rgba(16,185,129,.2);">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="color:var(--green);">💡</span>
+                <h3 style="color:var(--green);">Bonnes pratiques à maintenir</h3>
+              </div>
+              <ul class="checklist">
+                <li>Tous les secrets dans GitLab CI Variables — jamais dans le code</li>
+                <li>Version Plotly fixée — pas de <em>latest</em></li>
+                <li>Convention commits feat/fix/docs/ci respectée</li>
+                <li>CHANGELOG mis à jour à chaque release</li>
+              </ul>
+            </div>
           </div>
-          <ul class="checklist">
-            <li>Couverture tests ≥ 80% avant v2.0.0 (issue #2)</li>
-            <li>Alertes e-mail seuil consommation (issue #4)</li>
-            <li>Ajouter région Grand-Est (issue #6)</li>
-          </ul>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card" style="border-left:3px solid var(--blue);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="color:var(--blue);">🔵</span>
-            <h3 style="color:var(--blue);">Long terme (6 mois)</h3>
-          </div>
-          <ul class="checklist">
-            <li>Intégrer les prix EPEX SPOT pour analyse tarifaire (issue #7)</li>
-            <li>Dashboard mobile responsive (issue #8)</li>
-            <li>Export PDF automatique des rapports hebdo (issue #9)</li>
-          </ul>
-        </div>
-        <div class="card" style="background:rgba(16,185,129,.06); border-color:rgba(16,185,129,.2);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="color:var(--green);">💡</span>
-            <h3 style="color:var(--green);">Bonnes pratiques à maintenir</h3>
-          </div>
-          <ul class="checklist">
-            <li>Tous les secrets dans GitLab CI Variables — jamais dans le code</li>
-            <li>Version Plotly fixée — pas de <em>latest</em></li>
-            <li>Convention commits feat/fix/docs/ci respectée</li>
-            <li>CHANGELOG mis à jour à chaque release</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════════
      SLIDE 16 — CONCLUSION
 ══════════════════════════════════════════════════════════════ -->
-<section class="slide cover-bg">
-  <div style="text-align:center; max-width:800px;">
-    <div style="font-size:2.5rem; margin-bottom:16px;">🚀</div>
-    <h1 style="font-size:2.4rem; margin-bottom:12px;">Pipeline <span class="accent">opérationnel</span><br>en production</h1>
-    <div class="divider" style="background:linear-gradient(90deg,var(--blue),var(--cyan)); margin:20px auto;"></div>
-    <div style="display:flex; justify-content:center; gap:32px; margin:28px 0; flex-wrap:wrap;">
-      <div class="kpi">
-        <span class="kpi-val" style="color:var(--blue);">v1.3</span>
-        <span class="kpi-lbl">Version courante</span>
+    <section class="slide cover-bg">
+      <div style="text-align:center; max-width:800px;">
+        <div style="font-size:2.5rem; margin-bottom:16px;">🚀</div>
+        <h1 style="font-size:2.4rem; margin-bottom:12px;">Pipeline <span class="accent">opérationnel</span><br>en
+          production</h1>
+        <div class="divider" style="background:linear-gradient(90deg,var(--blue),var(--cyan)); margin:20px auto;"></div>
+        <div style="display:flex; justify-content:center; gap:32px; margin:28px 0; flex-wrap:wrap;">
+          <div class="kpi">
+            <span class="kpi-val" style="color:var(--blue);">v1.3</span>
+            <span class="kpi-lbl">Version courante</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-val" style="color:var(--green);">4</span>
+            <span class="kpi-lbl">Régions · Dashboards</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-val" style="color:var(--cyan);">2</span>
+            <span class="kpi-lbl">Interfaces (HTML + Streamlit)</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-val" style="color:var(--purple);">9</span>
+            <span class="kpi-lbl">Issues roadmap</span>
+          </div>
+        </div>
+        <div class="badge-row" style="justify-content:center; margin-top:20px;">
+          <span class="tag tag-blue">Python 3.11</span>
+          <span class="tag tag-cyan">Pandas · Plotly</span>
+          <span class="tag tag-green">Streamlit · Prophet</span>
+          <span class="tag tag-purple">GitLab CI/CD</span>
+          <span class="tag tag-orange">AWS EC2</span>
+        </div>
+        <p style="margin-top:28px; font-size:.82rem; color:var(--muted);">
+          Code source : <span style="color:var(--cyan);">gitlab.com/Rimiscky/data_cl</span><br>
+          Production : <span style="color:var(--cyan);">13.39.99.56:8080</span> · <span
+            style="color:var(--cyan);">13.39.99.56:8501</span>
+        </p>
       </div>
-      <div class="kpi">
-        <span class="kpi-val" style="color:var(--green);">4</span>
-        <span class="kpi-lbl">Régions · Dashboards</span>
-      </div>
-      <div class="kpi">
-        <span class="kpi-val" style="color:var(--cyan);">2</span>
-        <span class="kpi-lbl">Interfaces (HTML + Streamlit)</span>
-      </div>
-      <div class="kpi">
-        <span class="kpi-val" style="color:var(--purple);">9</span>
-        <span class="kpi-lbl">Issues roadmap</span>
-      </div>
-    </div>
-    <div class="badge-row" style="justify-content:center; margin-top:20px;">
-      <span class="tag tag-blue">Python 3.11</span>
-      <span class="tag tag-cyan">Pandas · Plotly</span>
-      <span class="tag tag-green">Streamlit · Prophet</span>
-      <span class="tag tag-purple">GitLab CI/CD</span>
-      <span class="tag tag-orange">AWS EC2</span>
-    </div>
-    <p style="margin-top:28px; font-size:.82rem; color:var(--muted);">
-      Code source : <span style="color:var(--cyan);">gitlab.com/Rimiscky/data_cl</span><br>
-      Production : <span style="color:var(--cyan);">13.39.99.56:8080</span> · <span style="color:var(--cyan);">13.39.99.56:8501</span>
-    </p>
-  </div>
-</section>
+    </section>
 
-</div><!-- /deck -->
+  </div><!-- /deck -->
 
-<script>
-const slides = document.querySelectorAll('.slide');
-const dots   = document.getElementById('dots');
-let cur = 0;
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.getElementById('dots');
+    let cur = 0;
 
-// Build dots
-slides.forEach((_, i) => {
-  const d = document.createElement('div');
-  d.className = 'dot' + (i===0?' active':'');
-  d.onclick = () => go(i - cur);
-  dots.appendChild(d);
-});
+    // Build dots
+    slides.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === 0 ? ' active' : '');
+      d.onclick = () => go(i - cur);
+      dots.appendChild(d);
+    });
 
-function render() {
-  slides.forEach((s, i) => {
-    s.classList.remove('active','prev');
-    if (i === cur)      s.classList.add('active');
-    else if (i < cur)   s.classList.add('prev');
-  });
-  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===cur));
-  document.getElementById('progress-bar').style.width = ((cur/(slides.length-1))*100)+'%';
-  document.getElementById('slide-counter').textContent = (cur+1)+' / '+slides.length;
-}
+    function render() {
+      slides.forEach((s, i) => {
+        s.classList.remove('active', 'prev');
+        if (i === cur) s.classList.add('active');
+        else if (i < cur) s.classList.add('prev');
+      });
+      document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+      document.getElementById('progress-bar').style.width = ((cur / (slides.length - 1)) * 100) + '%';
+      document.getElementById('slide-counter').textContent = (cur + 1) + ' / ' + slides.length;
+    }
 
-function go(dir) {
-  const n = cur + dir;
-  if (n >= 0 && n < slides.length) { cur = n; render(); }
-}
+    function go(dir) {
+      const n = cur + dir;
+      if (n >= 0 && n < slides.length) { cur = n; render(); }
+    }
 
-document.addEventListener('keydown', e => {
-  if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); go(+1); }
-  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')                 { e.preventDefault(); go(-1); }
-  if (e.key==='Home') { cur=0; render(); }
-  if (e.key==='End')  { cur=slides.length-1; render(); }
-});
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(+1); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); go(-1); }
+      if (e.key === 'Home') { cur = 0; render(); }
+      if (e.key === 'End') { cur = slides.length - 1; render(); }
+    });
 
-// Touch/swipe
-let tx=0;
-document.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive:true});
-document.addEventListener('touchend',   e => {
-  const dx = e.changedTouches[0].clientX - tx;
-  if (Math.abs(dx) > 50) go(dx < 0 ? +1 : -1);
-}, {passive:true});
+    // Touch/swipe
+    let tx = 0;
+    document.addEventListener('touchstart', e => tx = e.touches[0].clientX, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - tx;
+      if (Math.abs(dx) > 50) go(dx < 0 ? +1 : -1);
+    }, { passive: true });
 
-render();
-</script>
+    render();
+  </script>
 </body>
+
 </html>
