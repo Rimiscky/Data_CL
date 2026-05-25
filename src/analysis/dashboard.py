@@ -613,7 +613,8 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
 <!-- KPIs -->
 <div class="kpis">
   <div class="kpi"         id="kpi-n"><div class="kpi-val">—</div><div class="kpi-label">Enregistrements</div></div>
-  <div class="kpi green"   id="kpi-mean"><div class="kpi-val">—</div><div class="kpi-label">Moyenne élec (MW)</div></div>
+  <div class="kpi green"   id="kpi-mean"><div class="kpi-val">—</div>
+    <div class="kpi-label">Moyenne élec (MW)</div></div>
   <div class="kpi orange"  id="kpi-max"><div class="kpi-val">—</div><div class="kpi-label">Pic max (MW)</div></div>
   <div class="kpi red"     id="kpi-min"><div class="kpi-val">—</div><div class="kpi-label">Min (MW)</div></div>
   <div class="kpi"         id="kpi-gas"><div class="kpi-val">—</div><div class="kpi-label">Moyenne gaz (MW)</div></div>
@@ -626,7 +627,8 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:.78em}
   <div class="nd-sub">
     Les données disponibles couvrent la période <strong>__DATE_MIN__</strong> → <strong>__DATE_MAX__</strong>
     (Printemps 2026 — mars uniquement).<br>
-    Les filtres <em>Été</em>, <em>Automne</em> et <em>Hiver</em> ne correspondent à aucun enregistrement dans ce dataset.
+    Les filtres <em>Été</em>, <em>Automne</em> et <em>Hiver</em>
+    ne correspondent à aucun enregistrement dans ce dataset.
   </div>
 </div>
 
@@ -665,7 +667,8 @@ const TOTAL = window.D.length;
 const S = {df:'__DATE_MIN__', dt:'__DATE_MAX__', season:'', jour:'', heure:''};
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-const SEASON = mo => [3,4,5].includes(mo)?'Printemps':[6,7,8].includes(mo)?'Été':[9,10,11].includes(mo)?'Automne':'Hiver';
+const SEASON = mo => [3,4,5].includes(mo) ? 'Printemps'
+  : [6,7,8].includes(mo) ? 'Été' : [9,10,11].includes(mo) ? 'Automne' : 'Hiver';
 const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
 const std  = a => { const m=mean(a); return a.length ? Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length) : 0; };
 const fmt  = v => v===null||isNaN(v) ? '—' : Math.round(v).toLocaleString('fr-FR');
