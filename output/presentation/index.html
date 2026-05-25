@@ -588,12 +588,11 @@
     }
   
   /* ── Lightbox ── */
-  .slide img {
+  .slide.active img {
     cursor: zoom-in;
     transition: opacity .15s, transform .15s;
-    pointer-events: auto;
   }
-  .slide img:hover { opacity: .88; transform: scale(1.01); }
+  .slide.active img:hover { opacity: .88; transform: scale(1.01); }
 
   #lightbox {
     visibility: hidden;
@@ -1811,7 +1810,13 @@
 
   </div><!-- /deck -->
 
-  <script>
+  
+  <!-- Lightbox -->
+  <div id="lightbox">
+    <span id="lightbox-close" title="Fermer (Echap)">&times;</span>
+    <img id="lightbox-img" src="" alt="">
+  </div>
+<script>
     const slides = document.querySelectorAll('.slide');
     const dots = document.getElementById('dots');
     let cur = 0;
@@ -1877,12 +1882,6 @@
     });
 
   </script>
-
-  <!-- Lightbox -->
-  <div id="lightbox">
-    <span id="lightbox-close" title="Fermer (Echap)">&times;</span>
-    <img id="lightbox-img" src="" alt="">
-  </div>
 
 </body>
 
