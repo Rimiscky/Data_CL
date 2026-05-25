@@ -1,12 +1,12 @@
 # Pipeline de Données Énergétiques — France
 
-> Pipeline de données de bout en bout sur la consommation d'électricité en France : ingestion multi-sources, ETL, gouvernance des données, tableaux de bord HTML interactifs avec filtres JS et animations, et application Streamlit multi-régions.
+> Pipeline de données de bout en bout sur la consommation d'électricité en France : ingestion multi-sources, ETL, gouvernance des données, tableaux de bord HTML interactifs avec filtres JS et animations, et application Streamlit multi-régions déployée sur AWS EC2.
 
 ---
 
 ## Ce que fait ce projet
 
-Ce projet collecte, transforme et visualise les données d'énergie et de météo en France. Le pipeline s'exécute automatiquement chaque jour via GitLab CI/CD et génère des tableaux de bord HTML interactifs ainsi qu'une application Streamlit explorable localement.
+Ce projet collecte, transforme et visualise les données d'énergie et de météo en France. Le pipeline s'exécute automatiquement chaque jour via GitLab CI/CD et génère des tableaux de bord HTML interactifs ainsi qu'une application Streamlit déployée sur AWS EC2.
 
 ---
 
@@ -107,6 +107,49 @@ Les secrets (`RTE_API_KEY`, etc.) sont stockés dans **GitLab CI/CD Variables** 
 
 ---
 
+## Déploiement EC2 (production)
+
+L'instance AWS EC2 (`13.39.99.56`, Ubuntu 22.04) héberge les deux interfaces en production.
+
+### Services déployés
+
+| Service | Port | Démarrage | Script |
+|---|---|---|---|
+| Dashboards HTML | 8080 | `@reboot` cron | `python3 -m http.server 8080` |
+| Application Streamlit | 8501 | systemd `streamlit.service` | `deploy_streamlit_ec2.sh` |
+
+### Déployer les dashboards HTML
+
+```bash
+bash scripts/deploy_ec2.sh
+```
+
+### Déployer / mettre à jour Streamlit
+
+```bash
+bash scripts/deploy_streamlit_ec2.sh
+```
+
+### Maintenance disque (automatique)
+
+Un cron tourne chaque **dimanche à 3h UTC** pour libérer le disque :
+```bash
+# Installation (une seule fois)
+bash scripts/setup_cleanup_cron.sh
+
+# Exécution manuelle
+ssh -i ~/Downloads/Projet_Data_Engineering.pem ubuntu@13.39.99.56 \
+  "PROJECT_DIR=/home/ubuntu sudo -E bash /home/ubuntu/scripts/cleanup_disk.sh"
+```
+
+Cibles : images Docker, logs > 14j, `data/raw/` > 7j, cache APT/pip, `/tmp`.
+
+### Variables d'environnement sur EC2
+
+Stockées dans `/home/ubuntu/.env` (chmod 600), injectées dans le service systemd via `EnvironmentFile`.
+
+---
+
 ## Architecture
 
 ```
@@ -130,8 +173,8 @@ Entrepôt (data/warehouse/)
     │       ├── energy.rte_generation
     │       └── energy.quality_reports
     │
-    ├── Dashboards HTML (Plotly)   → localhost:8080  (filtres JS + animations)
-    └── Application Streamlit      → localhost:8501  (6 onglets interactifs)
+    ├── Dashboards HTML (Plotly)   → EC2 :8080  (filtres JS + animations, 9 graphiques)
+    └── Application Streamlit      → EC2 :8501  (6 onglets interactifs, service systemd)
 ```
 
 ---
@@ -185,6 +228,7 @@ Trois fichiers HTML autonomes générés dans `output/dashboards/` :
 - Filtres JavaScript client-side : plage de dates, saison, type de jour, tranche horaire
 - Bannière explicative si aucune donnée pour le filtre sélectionné
 - Animations : compteurs KPI animés (`easeOutCubic`), `fadeInUp` sur les graphiques, shimmer pendant la mise à jour
+- **9 graphiques** : série temporelle, profil 24h par saison, profil horaire, jour de semaine, box plots par heure, heatmap jour×heure, heatmap calendrier date×heure, semaine vs weekend, distribution
 
 ### `dashboard_comparaison.html` — Comparaison inter-régionale
 - Sélection de deux régions à comparer
@@ -237,7 +281,11 @@ Data_CL/
 │   ├── load_to_db.py                  # Chargement PostgreSQL
 │   ├── run_governance.py              # Qualité des données
 │   ├── run_dashboard.py               # Génération tableaux de bord HTML
-│   └── run_full_pipeline.py           # Entrypoint pipeline complet
+│   ├── run_full_pipeline.py           # Entrypoint pipeline complet
+│   ├── deploy_ec2.sh                  # Déploiement dashboards HTML vers EC2
+│   ├── deploy_streamlit_ec2.sh        # Déploiement app Streamlit sur EC2 (systemd)
+│   ├── cleanup_disk.sh                # Nettoyage disque EC2 (Docker, logs, raw, APT)
+│   └── setup_cleanup_cron.sh          # Installation cron nettoyage sur EC2
 └── src/
     ├── ingestion/
     │   ├── api_client.py              # Client HTTP de base (retry, timeout)
@@ -281,13 +329,13 @@ docker-compose up -d airflow-webserver airflow-scheduler
 
 ### Interfaces disponibles
 
-| Service | URL | Identifiants |
+| Service | URL locale | URL EC2 (production) |
 |---|---|---|
-| Airflow | http://localhost:8080 | admin / admin |
-| MinIO | http://localhost:9001 | admin / password |
+| Dashboards HTML | http://localhost:8080 | http://13.39.99.56:8080/dashboards/ |
+| Application Streamlit | http://localhost:8501 | http://13.39.99.56:8501 |
+| Airflow | http://localhost:8080 | — |
+| MinIO | http://localhost:9001 | — |
 | Prometheus | http://localhost:9090 | — |
-| Dashboards HTML | http://localhost:8080 (depuis `output/dashboards/`) | — |
-| Application Streamlit | http://localhost:8501 | — |
 
 ### Exécution manuelle
 
