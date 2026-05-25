@@ -268,7 +268,133 @@ tr:hover td { background: rgba(255,255,255,.03); }
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════
-     SLIDE 3 — CONTEXTE & OBJECTIFS
+     SLIDE 3 — STACK TECHNIQUE RÉEL
+══════════════════════════════════════════════════════════════ -->
+<section class="slide" style="background:var(--dark);">
+  <div class="slide-content">
+    <p class="section-label">Stack technique</p>
+    <h2>Ce qui est <span class="accent-green">réellement utilisé</span></h2>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+      <!-- Colonne gauche -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+
+        <div class="card" style="border-left:3px solid var(--cyan);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--cyan); margin-bottom:10px;">Visualisation</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
+              <div>
+                <span style="font-weight:600; color:var(--white);">Plotly 5.18+</span>
+                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">graph_objects · subplots · Plotly.js 2.27.0</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="color:var(--green); font-weight:700; font-size:1rem;">✓</span>
+              <div>
+                <span style="font-weight:600; color:var(--white);">Streamlit 1.32+</span>
+                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">st.plotly_chart() · 6 onglets · sidebar filtres</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; opacity:.45;">
+              <span style="color:var(--red); font-weight:700; font-size:1rem;">✗</span>
+              <div>
+                <span style="font-weight:600; color:#94a3b8; text-decoration:line-through;">Bokeh 3.3</span>
+                <span style="color:var(--muted); font-size:.8rem; margin-left:8px;">dans requirements — jamais importé</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:3px solid var(--blue);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--blue); margin-bottom:10px;">Données & ML</div>
+          <div style="display:flex; flex-wrap:wrap; gap:7px;">
+            <span class="tag tag-blue">pandas 2.1+</span>
+            <span class="tag tag-blue">numpy 1.24+</span>
+            <span class="tag tag-cyan">scikit-learn 1.3+</span>
+            <span class="tag tag-cyan">statsmodels 0.14+</span>
+            <span class="tag tag-purple">Prophet 1.1+</span>
+          </div>
+          <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
+            KMeans clustering · ARIMA · Prévisions 30j · Métriques MAE/RMSE/R²
+          </div>
+        </div>
+
+        <div class="card" style="border-left:3px solid var(--green);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:10px;">Ingestion HTTP</div>
+          <div style="display:flex; flex-wrap:wrap; gap:7px;">
+            <span class="tag tag-green">requests 2.31+</span>
+            <span class="tag tag-green">beautifulsoup4</span>
+            <span class="tag tag-green">lxml</span>
+          </div>
+          <div style="margin-top:10px; font-size:.78rem; color:var(--muted);">
+            Retry 3× · timeout · context manager · OAuth2 RTE
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Colonne droite -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+
+        <div class="card" style="border-left:3px solid var(--purple);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--purple); margin-bottom:10px;">Infrastructure (en production)</div>
+          <div style="display:flex; flex-direction:column; gap:7px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:var(--white);">AWS EC2</strong> <span style="color:var(--muted);">Ubuntu 22.04 · Paris · t2.micro</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:var(--white);">Docker</strong> <span style="color:var(--muted);">multi-stage (test + production)</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:var(--white);">GitLab CI/CD</strong> <span style="color:var(--muted);">self-hosted runner EC2</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:var(--white);">systemd</strong> <span style="color:var(--muted);">streamlit.service · restart on-failure</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:3px solid var(--orange);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--orange); margin-bottom:10px;">Disponible dans le code — non déployé en prod</div>
+          <div style="display:flex; flex-direction:column; gap:7px;">
+            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">PostgreSQL</strong> <span style="color:var(--muted);">SQLAlchemy · schéma energy.* · scripts/load_to_db.py</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">MinIO</strong> <span style="color:var(--muted);">stockage objet S3 · scripts/upload_to_minio.py</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Apache Airflow</strong> <span style="color:var(--muted);">DAG quotidien 6h UTC · airflow/dags/</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; opacity:.65;">
+              <div style="width:8px; height:8px; border-radius:50%; border:1px solid var(--orange); flex-shrink:0;"></div>
+              <span style="font-size:.84rem;"><strong style="color:#94a3b8;">Prometheus</strong> <span style="color:var(--muted);">exporteur métriques · src/monitoring/</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background:rgba(16,185,129,.05); border-color:rgba(16,185,129,.2);">
+          <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--green); margin-bottom:8px;">Python</div>
+          <div style="font-size:1.8rem; font-weight:800; color:var(--white);">3.11 <span style="font-size:.9rem; color:var(--muted); font-weight:400;">— version de production</span></div>
+          <div style="margin-top:6px; font-size:.78rem; color:var(--muted);">Testé aussi en 3.12 via GitLab CI · zoneinfo · dataclasses · match-case</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 4 — CONTEXTE & OBJECTIFS
 ══════════════════════════════════════════════════════════════ -->
 <section class="slide bg-glow-green">
   <div class="slide-content">

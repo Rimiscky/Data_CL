@@ -1,6 +1,6 @@
 """
 Générateur de dashboards interactifs pour la consommation énergétique IDF.
-Utilise Plotly pour les graphiques interactifs et Bokeh pour le dashboard HTML.
+Utilise Plotly (graph_objects) pour tous les graphiques — export HTML autonome.
 """
 from pathlib import Path
 from typing import Optional
