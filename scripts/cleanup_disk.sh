@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────
-PROJECT_DIR="${PROJECT_DIR:-/home/ubuntu/Data_CL}"
+PROJECT_DIR="${PROJECT_DIR:-/home/ubuntu}"
 LOG_FILE="/var/log/cleanup_disk.log"
 RAW_RETENTION_DAYS="${RAW_RETENTION_DAYS:-7}"    # garder N jours de data/raw
 LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-14}"   # garder N jours de logs app
