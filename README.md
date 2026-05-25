@@ -1,5 +1,9 @@
 # Pipeline de Données Énergétiques — France
 
+[![pipeline status](https://gitlab.com/Rimiscky/data_cl/badges/main/pipeline.svg)](https://gitlab.com/Rimiscky/data_cl/-/pipelines)
+[![coverage](https://gitlab.com/Rimiscky/data_cl/badges/main/coverage.svg)](https://gitlab.com/Rimiscky/data_cl/-/commits/main)
+[![GitLab Release](https://gitlab.com/Rimiscky/data_cl/-/badges/release.svg)](https://gitlab.com/Rimiscky/data_cl/-/releases)
+
 > Pipeline de données de bout en bout sur la consommation d'électricité en France : ingestion multi-sources, ETL, gouvernance des données, tableaux de bord HTML interactifs avec filtres JS et animations, et application Streamlit multi-régions déployée sur AWS EC2.
 
 ---
