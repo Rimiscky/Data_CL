@@ -47,6 +47,8 @@ output/**
 !output/dashboards/index.html
 !output/presentation/
 !output/presentation/index.html
+!output/rapport_final.html
+!output/project_management.html
 
 # Logs
 logs/
