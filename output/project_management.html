@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion de Projet — Data Engineering</title>
+  <style>
+    :root {
+      --dark: #0d1117; --card: rgba(255,255,255,.05); --border: rgba(255,255,255,.09);
+      --blue: #3b82f6; --green: #10b981; --purple: #8b5cf6; --cyan: #06b6d4;
+      --orange: #f59e0b; --red: #ef4444; --white: #f1f5f9; --muted: #64748b;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--dark); color:var(--white); min-height:100vh; }
+
+    /* ── Fond animé ── */
+    .bg-orbs { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+    .orb { position:absolute; border-radius:50%; filter:blur(90px); opacity:.4; animation:drift linear infinite; }
+    .orb-1 { width:500px;height:500px; background:radial-gradient(circle,#3b82f6,transparent 70%); top:-150px;left:-100px; animation-duration:20s; }
+    .orb-2 { width:400px;height:400px; background:radial-gradient(circle,#8b5cf6,transparent 70%); bottom:-100px;right:-80px; animation-duration:24s;animation-direction:reverse; }
+    .orb-3 { width:280px;height:280px; background:radial-gradient(circle,#06b6d4,transparent 70%); top:50%;left:60%; animation-duration:16s;animation-delay:-8s; }
+    @keyframes drift {
+      0%  { transform:translate(0,0) scale(1); }
+      33% { transform:translate(35px,-25px) scale(1.07); }
+      66% { transform:translate(-20px,40px) scale(.94); }
+      100%{ transform:translate(0,0) scale(1); }
+    }
+
+    /* ── Layout ── */
+    .page { position:relative; z-index:1; max-width:1300px; margin:0 auto; padding:40px 40px 60px; }
+
+    .header { margin-bottom:40px; border-bottom:1px solid var(--border); padding-bottom:28px; }
+    .header-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .back-link { font-size:.82rem; color:var(--muted); text-decoration:none; }
+    .back-link:hover { color:var(--white); }
+    .header h1 { font-size:1.9em; font-weight:700; letter-spacing:-.4px; }
+    .header h1 span { color:var(--cyan); }
+    .header p { color:var(--muted); font-size:.88rem; margin-top:6px; }
+    .badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .badge { font-size:.72rem; padding:3px 10px; border-radius:20px; border:1px solid; }
+    .badge-blue   { background:rgba(59,130,246,.12); border-color:rgba(59,130,246,.3); color:#93c5fd; }
+    .badge-green  { background:rgba(16,185,129,.12); border-color:rgba(16,185,129,.3); color:#6ee7b7; }
+    .badge-purple { background:rgba(139,92,246,.12); border-color:rgba(139,92,246,.3); color:#c4b5fd; }
+
+    /* ── Section ── */
+    .section-title {
+      font-size:1.05rem; font-weight:600; color:var(--white);
+      margin-bottom:18px; display:flex; align-items:center; gap:10px;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* ══════════════════════════════════════
+       GANTT
+    ══════════════════════════════════════ */
+    .gantt-wrap { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:44px; }
+
+    /* En-tête mois */
+    .gantt-months {
+      display:grid;
+      border-bottom:1px solid var(--border);
+    }
+    .gantt-label-col { width:220px; flex-shrink:0; }
+    .gantt-month {
+      font-size:.68rem; color:var(--muted); text-align:center;
+      padding:8px 4px; border-right:1px solid var(--border);
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .gantt-month:last-child { border-right:none; }
+    .gantt-month.today-month { color:var(--cyan); }
+
+    /* Lignes tâches */
+    .gantt-row {
+      display:flex; align-items:center;
+      border-bottom:1px solid rgba(255,255,255,.04);
+      min-height:46px;
+    }
+    .gantt-row:last-child { border-bottom:none; }
+    .gantt-row-label {
+      width:220px; flex-shrink:0;
+      padding:10px 16px;
+      font-size:.8rem; color:#cbd5e1;
+      border-right:1px solid var(--border);
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .gantt-row-label strong { color:var(--white); font-size:.82rem; }
+    .gantt-row-label span { color:var(--muted); font-size:.68rem; }
+    .gantt-timeline { flex:1; position:relative; height:46px; }
+
+    /* Barre de tâche */
+    .gantt-bar {
+      position:absolute; top:50%; transform:translateY(-50%);
+      height:22px; border-radius:6px;
+      display:flex; align-items:center; padding:0 10px;
+      font-size:.7rem; font-weight:600; white-space:nowrap; overflow:hidden;
+    }
+
+    /* Ligne today */
+    .gantt-today {
+      position:absolute; top:0; bottom:0; width:2px;
+      background:rgba(6,182,212,.7);
+      z-index:2;
+    }
+    .gantt-today::before {
+      content:'Aujourd\'hui';
+      position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+      font-size:.6rem; color:var(--cyan); white-space:nowrap;
+      background:var(--dark); padding:1px 5px; border-radius:4px;
+    }
+
+    /* Colonnes mois (grille verticale) */
+    .gantt-col-bg {
+      position:absolute; top:0; bottom:0;
+      border-right:1px solid rgba(255,255,255,.04);
+    }
+
+    /* ══════════════════════════════════════
+       KANBAN
+    ══════════════════════════════════════ */
+    .kanban { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+
+    .kanban-col { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .kanban-col-header {
+      font-size:.75rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:1px; margin-bottom:14px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .kanban-count {
+      font-size:.7rem; background:rgba(255,255,255,.08);
+      border-radius:12px; padding:1px 8px; font-weight:400;
+      color:var(--muted); text-transform:none; letter-spacing:0;
+    }
+
+    .kanban-card {
+      background:rgba(255,255,255,.05); border:1px solid var(--border);
+      border-radius:8px; padding:11px 13px; margin-bottom:10px;
+      font-size:.78rem;
+    }
+    .kanban-card:last-child { margin-bottom:0; }
+    .kanban-card-title { color:var(--white); font-weight:600; margin-bottom:5px; line-height:1.35; }
+    .kanban-card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .kanban-tag {
+      font-size:.65rem; padding:2px 7px; border-radius:10px; border:1px solid;
+    }
+    .kanban-issue { font-size:.65rem; color:var(--muted); }
+
+    /* Couleurs colonnes */
+    .col-done   { border-top:3px solid var(--green); }
+    .col-active { border-top:3px solid var(--blue); }
+    .col-v14    { border-top:3px solid var(--orange); }
+    .col-v20    { border-top:3px solid var(--purple); }
+
+    .col-done   .kanban-col-header { color:var(--green); }
+    .col-active .kanban-col-header { color:var(--blue); }
+    .col-v14    .kanban-col-header { color:var(--orange); }
+    .col-v20    .kanban-col-header { color:var(--purple); }
+
+    /* Tags couleurs */
+    .t-green  { background:rgba(16,185,129,.12); border-color:rgba(16,185,129,.3); color:#6ee7b7; }
+    .t-blue   { background:rgba(59,130,246,.12); border-color:rgba(59,130,246,.3); color:#93c5fd; }
+    .t-orange { background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.3); color:#fcd34d; }
+    .t-purple { background:rgba(139,92,246,.12); border-color:rgba(139,92,246,.3); color:#c4b5fd; }
+    .t-red    { background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.3); color:#fca5a5; }
+    .t-cyan   { background:rgba(6,182,212,.12); border-color:rgba(6,182,212,.3); color:#67e8f9; }
+
+    @media(max-width:900px) {
+      .kanban { grid-template-columns:1fr 1fr; }
+      .page { padding:24px 16px 40px; }
+    }
+    @media(max-width:550px) { .kanban { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <a class="back-link" href="/">← Accueil</a>
+      <span class="back-link">Mis à jour : mai 2026</span>
+    </div>
+    <h1 style="margin-top:14px;">📋 Gestion de Projet — <span>Data Engineering</span></h1>
+    <p>Suivi de l'avancement du pipeline énergie France · GitLab CI/CD · AWS EC2</p>
+    <div class="badges">
+      <span class="badge badge-green">✓ v1.3.0 en production</span>
+      <span class="badge badge-orange" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d;">⏳ v1.4.0 — 30 juin 2026</span>
+      <span class="badge badge-purple">🔮 v2.0.0 — 30 sept. 2026</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       GANTT
+  ═══════════════════════════════════════════ -->
+  <div class="section-title">📅 Diagramme de Gantt — Calendrier du projet</div>
+
+  <div class="gantt-wrap" id="gantt-wrap">
+    <!-- JS génère le contenu -->
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       KANBAN
+  ═══════════════════════════════════════════ -->
+  <div class="section-title">🗂️ Board Kanban — Suivi des issues</div>
+
+  <div class="kanban">
+
+    <!-- Terminé -->
+    <div class="kanban-col col-done">
+      <div class="kanban-col-header">✅ Terminé <span class="kanban-count">7</span></div>
+
+      <div class="kanban-card">
+        <div class="kanban-card-title">Pipeline ETL 4 régions</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.0.0</span>
+          <span class="kanban-tag t-blue">ETL</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Dashboards HTML interactifs (9 graphiques IDF)</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.0.0</span>
+          <span class="kanban-tag t-cyan">Front</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Application Streamlit 6 onglets</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.1.0</span>
+          <span class="kanban-tag t-cyan">Front</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">GitLab CI/CD — runner self-hosted EC2</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.1.0</span>
+          <span class="kanban-tag t-purple">CI/CD</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Gouvernance : qualité, lignage, catalogue</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.2.0</span>
+          <span class="kanban-tag t-orange">Data</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Prévisions Prophet 30j + IC 95%</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.2.0</span>
+          <span class="kanban-tag t-blue">ML</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Cleanup disque automatique (cron hebdo)</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-green">v1.3.0</span>
+          <span class="kanban-tag t-purple">Infra</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- En cours -->
+    <div class="kanban-col col-active">
+      <div class="kanban-col-header">🔄 En cours <span class="kanban-count">2</span></div>
+
+      <div class="kanban-card">
+        <div class="kanban-card-title">Score gouvernance 57% → 80%</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-orange">#3</span>
+          <span class="kanban-tag t-orange">v1.4.0</span>
+          <span class="kanban-tag t-blue">Data</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Monitoring disque avant saturation</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-orange">#5</span>
+          <span class="kanban-tag t-red">Urgent</span>
+          <span class="kanban-tag t-purple">Infra</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- v1.4.0 -->
+    <div class="kanban-col col-v14">
+      <div class="kanban-col-header">📦 v1.4.0 — Juin 2026 <span class="kanban-count">3</span></div>
+
+      <div class="kanban-card">
+        <div class="kanban-card-title">Cron quotidien mise à jour données EC2</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-orange">#1</span>
+          <span class="kanban-tag t-purple">Infra</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Tests unitaires DataMerger + CrossDash</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-orange">#2</span>
+          <span class="kanban-tag t-blue">Tests</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Alertes e-mail seuil consommation</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-orange">#4</span>
+          <span class="kanban-tag t-cyan">Feature</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- v2.0.0 -->
+    <div class="kanban-col col-v20">
+      <div class="kanban-col-header">🔮 v2.0.0 — Sept. 2026 <span class="kanban-count">4</span></div>
+
+      <div class="kanban-card">
+        <div class="kanban-card-title">5ème région : Grand-Est</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-purple">#6</span>
+          <span class="kanban-tag t-blue">Data</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Prix électricité EPEX SPOT €/MWh</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-purple">#7</span>
+          <span class="kanban-tag t-orange">Data</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Dashboard mobile responsive</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-purple">#8</span>
+          <span class="kanban-tag t-cyan">Front</span>
+        </div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Rapports PDF automatiques hebdo</div>
+        <div class="kanban-card-meta">
+          <span class="kanban-tag t-purple">#9</span>
+          <span class="kanban-tag t-green">Auto</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /kanban -->
+</div><!-- /page -->
+
+<script>
+// ─── Données Gantt ───────────────────────────────────────────────────────────
+const START_PROJ = new Date('2025-10-01'); // début projet
+const END_PROJ   = new Date('2026-09-30'); // livraison finale v2.0.0
+const TODAY      = new Date('2026-05-26');
+
+const TASKS = [
+  { label:'Infrastructure EC2',    sub:'Setup + déploiement',        start:'2025-10-01', end:'2025-11-15', color:'#06b6d4' },
+  { label:'Pipeline ETL',          sub:'Ingestion ODRE · Météo · RTE',start:'2025-10-15', end:'2026-01-15', color:'#3b82f6' },
+  { label:'Dashboards HTML',       sub:'IDF · Comparaison · Météo',   start:'2025-12-01', end:'2026-02-28', color:'#8b5cf6' },
+  { label:'App Streamlit',         sub:'6 onglets · Prophet',         start:'2026-01-15', end:'2026-03-15', color:'#10b981' },
+  { label:'GitLab CI/CD',          sub:'Runner self-hosted · Tests',  start:'2026-02-01', end:'2026-03-31', color:'#f59e0b' },
+  { label:'Gouvernance & Qualité', sub:'Lignage · Catalogue · Score', start:'2026-03-01', end:'2026-04-30', color:'#ec4899' },
+  { label:'v1.3.0 — Production',   sub:'Release · Nettoyage · Docs',  start:'2026-04-01', end:'2026-05-26', color:'#10b981' },
+  { label:'v1.4.0 — Robustesse',   sub:'Cron · Tests · Alertes',      start:'2026-05-01', end:'2026-06-30', color:'#f59e0b' },
+  { label:'v2.0.0 — Expansion',    sub:'Grand-Est · EPEX · PDF',      start:'2026-07-01', end:'2026-09-30', color:'#8b5cf6' },
+];
+
+// Milestones
+const MILESTONES = [
+  { date:'2026-01-15', label:'v1.0.0', color:'#3b82f6' },
+  { date:'2026-03-01', label:'v1.1.0', color:'#10b981' },
+  { date:'2026-04-01', label:'v1.2.0', color:'#f59e0b' },
+  { date:'2026-05-10', label:'v1.3.0', color:'#10b981' },
+  { date:'2026-06-30', label:'v1.4.0', color:'#f59e0b' },
+  { date:'2026-09-30', label:'v2.0.0', color:'#8b5cf6' },
+];
+
+// ─── Construction du Gantt ────────────────────────────────────────────────────
+const wrap = document.getElementById('gantt-wrap');
+const totalDays = (END_PROJ - START_PROJ) / 86400000;
+
+// Générer les mois
+const months = [];
+let d = new Date(START_PROJ.getFullYear(), START_PROJ.getMonth(), 1);
+while (d <= END_PROJ) {
+  months.push(new Date(d));
+  d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+}
+
+function pct(date) {
+  const ds = new Date(date);
+  return Math.max(0, Math.min(100, (ds - START_PROJ) / (END_PROJ - START_PROJ) * 100));
+}
+
+// En-tête mois
+const header = document.createElement('div');
+header.style.cssText = 'display:flex; border-bottom:1px solid rgba(255,255,255,.09);';
+const labelHead = document.createElement('div');
+labelHead.style.cssText = 'width:220px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.09);';
+header.appendChild(labelHead);
+
+const monthsDiv = document.createElement('div');
+monthsDiv.style.cssText = 'flex:1; display:flex;';
+months.forEach(m => {
+  const span = document.createElement('div');
+  const isToday = m.getMonth() === TODAY.getMonth() && m.getFullYear() === TODAY.getFullYear();
+  const names = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+  span.style.cssText = `flex:1; text-align:center; padding:7px 2px; font-size:.65rem;
+    text-transform:uppercase; letter-spacing:.5px; border-right:1px solid rgba(255,255,255,.05);
+    color:${isToday ? '#06b6d4' : '#64748b'};`;
+  span.textContent = names[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2);
+  monthsDiv.appendChild(span);
+});
+header.appendChild(monthsDiv);
+wrap.appendChild(header);
+
+// Ligne today (dans le timeline)
+const todayPct = pct(TODAY);
+
+// Lignes tâches
+TASKS.forEach(t => {
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; border-bottom:1px solid rgba(255,255,255,.04); min-height:48px;';
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'width:220px;flex-shrink:0;padding:8px 14px;border-right:1px solid rgba(255,255,255,.09);';
+  lbl.innerHTML = `<strong style="color:#f1f5f9;font-size:.8rem;">${t.label}</strong><br>
+    <span style="color:#64748b;font-size:.68rem;">${t.sub}</span>`;
+  row.appendChild(lbl);
+
+  const tl = document.createElement('div');
+  tl.style.cssText = 'flex:1; position:relative; height:48px;';
+
+  // Grille verticale mois
+  months.forEach((m, i) => {
+    const bg = document.createElement('div');
+    const mPct = (m - START_PROJ) / (END_PROJ - START_PROJ) * 100;
+    bg.style.cssText = `position:absolute;top:0;bottom:0;left:${mPct}%;
+      width:${100/months.length}%; border-right:1px solid rgba(255,255,255,.04);`;
+    tl.appendChild(bg);
+  });
+
+  // Ligne today
+  const todayLine = document.createElement('div');
+  todayLine.style.cssText = `position:absolute;top:0;bottom:0;left:${todayPct}%;width:2px;
+    background:rgba(6,182,212,.6);z-index:3;`;
+  tl.appendChild(todayLine);
+
+  // Barre tâche
+  const s = pct(t.start), e = pct(t.end);
+  const bar = document.createElement('div');
+  bar.style.cssText = `position:absolute;top:50%;transform:translateY(-50%);
+    left:${s}%;width:${e-s}%;height:24px;border-radius:6px;
+    background:${t.color}28;border:1px solid ${t.color}88;
+    display:flex;align-items:center;padding:0 8px;
+    font-size:.68rem;font-weight:600;color:${t.color};white-space:nowrap;overflow:hidden;z-index:2;`;
+  bar.textContent = t.label;
+  tl.appendChild(bar);
+
+  // Milestones
+  MILESTONES.forEach(ms => {
+    const mp = pct(ms.date);
+    if (mp < s - 1 || mp > e + 1) return;
+    const dot = document.createElement('div');
+    dot.title = ms.label;
+    dot.style.cssText = `position:absolute;top:50%;transform:translate(-50%,-50%);
+      left:${mp}%;width:10px;height:10px;border-radius:50%;
+      background:${ms.color};border:2px solid #0d1117;z-index:4;cursor:default;`;
+    const tip = document.createElement('div');
+    tip.style.cssText = `position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+      font-size:.6rem;color:${ms.color};white-space:nowrap;font-weight:700;`;
+    tip.textContent = ms.label;
+    dot.appendChild(tip);
+    tl.appendChild(dot);
+  });
+
+  row.appendChild(tl);
+  wrap.appendChild(row);
+});
+
+// Légende today sous le gantt
+const legend = document.createElement('div');
+legend.style.cssText = 'padding:10px 14px;font-size:.7rem;color:#64748b;display:flex;gap:20px;align-items:center;border-top:1px solid rgba(255,255,255,.06);';
+legend.innerHTML = `
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:2px;background:#06b6d4;display:inline-block;"></span> Aujourd'hui (26 mai 2026)</span>
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span> Milestone livré</span>
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Milestone à venir</span>`;
+wrap.appendChild(legend);
+</script>
+</body>
+</html>
