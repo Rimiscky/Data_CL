@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzBkMTExNyIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTksMyAxMCwxOCAxNiwxOCAxMywyOSAyMiwxNCAxNiwxNCIgZmlsbD0iIzA2YjZkNCIvPgo8L3N2Zz4=">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pipeline de Données Énergétiques — France</title>
   <style>
@@ -1545,50 +1546,79 @@
      SLIDE 12 — DÉCISIONS TECHNIQUES
 ══════════════════════════════════════════════════════════════ -->
     <section class="slide bg-glow-blue">
-      <div class="slide-content">
+      <div class="slide-content" style="max-width:1060px;">
         <p class="section-label">Choix d'ingénierie</p>
         <h2>Décisions techniques clés</h2>
-        <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
-          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-            <span style="font-size:1.4rem; flex-shrink:0;">🔀</span>
-            <div>
-              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-blue"
-                  style="margin-right:8px;">ETL</span>merge_asof au lieu d'un join classique</div>
-              <p style="font-size:.82rem;">Les timestamps énergie (demi-horaire) et météo (horaire) ne sont jamais
-                parfaitement alignés. <code style="color:var(--cyan);">merge_asof</code> avec tolérance 1h permet une
-                jointure temporelle approximative sans perdre de lignes. Résultat : 100% de correspondances.</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;">
+
+          <!-- ETL -->
+          <div class="card" style="border-left:4px solid var(--blue); padding:16px 18px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:1.3rem;">🔀</span>
+              <span class="tag tag-blue">ETL</span>
+              <strong style="color:var(--white); font-size:.88rem;">merge_asof temporel</strong>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:.78rem;">
+              <div><span style="color:var(--red); font-weight:600;">Problème :</span>
+                <span style="color:#94a3b8;"> timestamps énergie (30 min) ≠ météo (1h), jamais alignés exactement</span></div>
+              <div><span style="color:var(--cyan); font-weight:600;">Solution :</span>
+                <span style="color:#94a3b8;"> <code style="color:var(--cyan);">merge_asof</code> tolérance 1h — jointure temporelle approximative</span></div>
+              <div><span style="color:var(--green); font-weight:600;">Impact :</span>
+                <span style="color:var(--green);"> 100% de correspondances, zéro perte de lignes</span></div>
             </div>
           </div>
-          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-            <span style="font-size:1.4rem; flex-shrink:0;">📦</span>
-            <div>
-              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-cyan"
-                  style="margin-right:8px;">Dashboard</span>Données embarquées JSON dans le HTML</div>
-              <p style="font-size:.82rem;">Les dashboards HTML sont des fichiers autonomes (pas de backend). Les données
-                (500 lignes) sont injectées dans <code style="color:var(--cyan);">window.D</code> à la génération.
-                Avantage : zéro dépendance serveur, cacheable, distribuable.</p>
+
+          <!-- Dashboard -->
+          <div class="card" style="border-left:4px solid var(--cyan); padding:16px 18px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:1.3rem;">📦</span>
+              <span class="tag tag-cyan">Dashboard</span>
+              <strong style="color:var(--white); font-size:.88rem;">Données JSON embarquées</strong>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:.78rem;">
+              <div><span style="color:var(--red); font-weight:600;">Problème :</span>
+                <span style="color:#94a3b8;"> dashboards sans backend → comment servir les données ?</span></div>
+              <div><span style="color:var(--cyan); font-weight:600;">Solution :</span>
+                <span style="color:#94a3b8;"> 500 lignes injectées dans <code style="color:var(--cyan);">window.D</code> à la génération</span></div>
+              <div><span style="color:var(--green); font-weight:600;">Impact :</span>
+                <span style="color:var(--green);"> zéro dépendance serveur, fichier unique distribuable</span></div>
             </div>
           </div>
-          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-            <span style="font-size:1.4rem; flex-shrink:0;">🔒</span>
-            <div>
-              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-orange"
-                  style="margin-right:8px;">Secrets</span>EnvironmentFile systemd au lieu de .bashrc</div>
-              <p style="font-size:.82rem;"><code style="color:var(--cyan);">.bashrc</code> n'est pas sourcé par les
-                services systemd. Solution : <code style="color:var(--cyan);">EnvironmentFile=/home/ubuntu/.env</code>
-                dans l'unité systemd. Clé RTE disponible dans le service sans l'exposer dans le code.</p>
+
+          <!-- Secrets -->
+          <div class="card" style="border-left:4px solid var(--orange); padding:16px 18px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:1.3rem;">🔒</span>
+              <span class="tag tag-orange">Secrets</span>
+              <strong style="color:var(--white); font-size:.88rem;">EnvironmentFile systemd</strong>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:.78rem;">
+              <div><span style="color:var(--red); font-weight:600;">Problème :</span>
+                <span style="color:#94a3b8;"> <code style="color:var(--cyan);">.bashrc</code> non sourcé par systemd → clé RTE invisible</span></div>
+              <div><span style="color:var(--cyan); font-weight:600;">Solution :</span>
+                <span style="color:#94a3b8;"> <code style="color:var(--cyan);">EnvironmentFile=/home/ubuntu/.env</code> dans l'unité systemd</span></div>
+              <div><span style="color:var(--green); font-weight:600;">Impact :</span>
+                <span style="color:var(--green);"> secret disponible dans le service, jamais dans le code ni Git</span></div>
             </div>
           </div>
-          <div class="card" style="display:flex; gap:20px; align-items:flex-start;">
-            <span style="font-size:1.4rem; flex-shrink:0;">📌</span>
-            <div>
-              <div style="font-weight:600; color:var(--white); margin-bottom:4px;"><span class="tag tag-purple"
-                  style="margin-right:8px;">Frontend</span>CDN Plotly fixé à 2.27.0</div>
-              <p style="font-size:.82rem;"><code style="color:var(--cyan);">plotly-latest.min.js</code> peut rompre les
-                rendus à chaque mise à jour. Version fixée : comportement déterministe en production, même hors ligne si
-                le CDN est down.</p>
+
+          <!-- CDN -->
+          <div class="card" style="border-left:4px solid var(--purple); padding:16px 18px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:1.3rem;">📌</span>
+              <span class="tag tag-purple">Frontend</span>
+              <strong style="color:var(--white); font-size:.88rem;">CDN Plotly fixé à 2.27.0</strong>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:.78rem;">
+              <div><span style="color:var(--red); font-weight:600;">Problème :</span>
+                <span style="color:#94a3b8;"> <code style="color:var(--cyan);">plotly-latest</code> peut casser les rendus à chaque release</span></div>
+              <div><span style="color:var(--cyan); font-weight:600;">Solution :</span>
+                <span style="color:#94a3b8;"> version fixée dans tous les fichiers HTML générés</span></div>
+              <div><span style="color:var(--green); font-weight:600;">Impact :</span>
+                <span style="color:var(--green);"> comportement déterministe en production, résilient si CDN down</span></div>
             </div>
           </div>
+
         </div>
       </div>
     </section>
